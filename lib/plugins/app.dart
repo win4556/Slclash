@@ -12,7 +12,7 @@ class App {
   Function()? onExit;
 
   App._internal() {
-    methodChannel = const MethodChannel('$packageName/app');
+    methodChannel = const MethodChannel('$methodChannelPrefix/app');
     methodChannel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'exit':

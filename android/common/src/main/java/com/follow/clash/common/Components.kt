@@ -4,6 +4,10 @@ import android.content.ComponentName
 
 object Components {
     const val PACKAGE_NAME = "com.follow.clash"
+    const val METHOD_CHANNEL_PREFIX = "com.follow.clash"
+    const val APP_CHANNEL = "$METHOD_CHANNEL_PREFIX/app"
+    const val SERVICE_CHANNEL = "$METHOD_CHANNEL_PREFIX/service"
+    const val TILE_CHANNEL = "$METHOD_CHANNEL_PREFIX/tile"
 
     val MAIN_ACTIVITY =
         ComponentName(GlobalState.packageName, "${PACKAGE_NAME}.MainActivity")

@@ -30,6 +30,21 @@ class SurgeColors {
     );
   }
 
+  factory SurgeColors.dark() {
+    return const SurgeColors(
+      background: Color(0xFF050607),
+      card: Color(0xFF141619),
+      primary: Color(0xFF4DA3FF),
+      green: Color(0xFF30D158),
+      purple: Color(0xFFBF5AF2),
+      orange: Color(0xFFFF9F0A),
+      red: Color(0xFFFF453A),
+      textPrimary: Color(0xFFF5F5F7),
+      textSecondary: Color(0xFF9A9AA0),
+      separator: Color(0xFF2A2D31),
+    );
+  }
+
   final Color background;
   final Color card;
   final Color primary;

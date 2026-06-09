@@ -529,7 +529,7 @@ class _ListHeaderState extends State<ListHeader> {
                                           Flexible(
                                             flex: 1,
                                             child: EmojiText(
-                                              '  当前：$proxyName',
+                                              '  Current: $proxyName',
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: context

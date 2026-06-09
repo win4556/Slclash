@@ -116,7 +116,7 @@ class _NetworkDetectionState extends ConsumerState<NetworkDetection> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '检测中...',
+                          appLocalizations.loading,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: context.textTheme.titleSmall?.copyWith(

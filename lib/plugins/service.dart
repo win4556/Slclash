@@ -27,7 +27,7 @@ class Service {
   }
 
   Service._internal() {
-    methodChannel = const MethodChannel('$packageName/service');
+    methodChannel = const MethodChannel('$methodChannelPrefix/service');
     methodChannel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'event':

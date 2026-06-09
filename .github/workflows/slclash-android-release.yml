@@ -40,7 +40,17 @@ jobs:
             exit 1
           fi
 
+          if ! [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must look like v0.1.0"
+            exit 1
+          fi
+
+          VERSION_NAME="${TAG_NAME#v}"
+          BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
           echo "apk_name=SlClash-${TAG_NAME}-arm64-v8a.apk" >> "$GITHUB_OUTPUT"
 
       - name: Create tag for manual dispatch if needed
@@ -126,7 +136,9 @@ jobs:
 
       - name: Build APK
         run: |
-          flutter build apk --release --split-per-abi --target-platform android-arm64
+          flutter build apk --release --split-per-abi --target-platform android-arm64 \
+            --build-name "${{ steps.vars.outputs.version_name }}" \
+            --build-number "${{ steps.vars.outputs.build_number }}"
 
       - name: Rename arm64 APK
         shell: bash
@@ -164,6 +176,6 @@ jobs:
           else
             echo "Creating release $TAG_NAME..."
             gh release create "$TAG_NAME" "$APK_NAME" \
-              --title "SlClash $TAG_NAME" \
+              --title "SlClash ${{ steps.vars.outputs.version_name }}" \
               --notes "Android arm64-v8a release build."
           fi

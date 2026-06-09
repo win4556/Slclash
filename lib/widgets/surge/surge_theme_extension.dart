@@ -37,6 +37,24 @@ class SurgeTheme extends ThemeExtension<SurgeTheme> {
     );
   }
 
+  factory SurgeTheme.dark() {
+    final colors = SurgeColors.dark();
+    return SurgeTheme(
+      background: colors.background,
+      card: colors.card,
+      primary: colors.primary,
+      green: colors.green,
+      purple: colors.purple,
+      orange: colors.orange,
+      red: colors.red,
+      textPrimary: colors.textPrimary,
+      textSecondary: colors.textSecondary,
+      separator: colors.separator,
+      radii: SurgeRadii.regular(),
+      spacing: SurgeSpacing.regular(),
+    );
+  }
+
   final Color background;
   final Color card;
   final Color primary;

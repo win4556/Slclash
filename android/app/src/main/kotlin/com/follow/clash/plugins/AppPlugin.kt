@@ -375,9 +375,6 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
             packageInfo.applicationInfo?.publicSourceDir?.let {
                 ZipFile(File(it)).use {
                     for (packageEntry in it.entries()) {
-                        if (packageEntry.name.startsWith("firebase-")) return false
-                    }
-                    for (packageEntry in it.entries()) {
                         if (!(packageEntry.name.startsWith("classes") && packageEntry.name.endsWith(
                                 ".dex"
                             ))
@@ -410,8 +407,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         scope = CoroutineScope(Dispatchers.Default)
-        channel =
-            MethodChannel(flutterPluginBinding.binaryMessenger, "${Components.PACKAGE_NAME}/app")
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, Components.APP_CHANNEL)
         channel.setMethodCallHandler(this)
     }
 

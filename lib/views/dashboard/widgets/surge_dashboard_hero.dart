@@ -29,17 +29,9 @@ class SurgeDashboardHero extends ConsumerWidget {
   String _coreStatusLabel(BuildContext context, CoreStatus status) {
     return switch (status) {
       CoreStatus.connecting => context.appLocalizations.connecting,
-      CoreStatus.connected => '已就绪',
-      CoreStatus.disconnected => '未就绪',
+      CoreStatus.connected => context.appLocalizations.connected,
+      CoreStatus.disconnected => context.appLocalizations.disconnected,
     };
-  }
-
-  String _stopLabel(BuildContext context) {
-    final locale = Localizations.localeOf(context);
-    if (locale.languageCode == 'zh') {
-      return '停止';
-    }
-    return context.appLocalizations.stop;
   }
 
   void _handleSwitchStart(WidgetRef ref) {
@@ -120,7 +112,7 @@ class SurgeDashboardHero extends ConsumerWidget {
                 const SizedBox(width: 12),
                 SurgeStatusButton(
                   isActive: isStart,
-                  activeLabel: _stopLabel(context),
+                  activeLabel: appLocalizations.stop,
                   inactiveLabel: appLocalizations.start,
                   loading: coreStatus == CoreStatus.connecting,
                   compact: true,
@@ -167,9 +159,9 @@ class SurgeDashboardHero extends ConsumerWidget {
             const SizedBox(height: 10),
             _HeroInfoBar(
               items: [
-                _HeroInfoItem(label: '运行', value: runtimeText),
+                _HeroInfoItem(label: 'Runtime', value: runtimeText),
                 _HeroInfoItem(
-                  label: 'Core',
+                  label: appLocalizations.status,
                   value: _coreStatusLabel(context, coreStatus),
                 ),
               ],

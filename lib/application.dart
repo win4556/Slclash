@@ -7,6 +7,7 @@ import 'package:fl_clash/core/core.dart';
 import 'package:fl_clash/l10n/l10n.dart';
 import 'package:fl_clash/manager/hotkey_manager.dart';
 import 'package:fl_clash/manager/manager.dart';
+import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/plugins/app.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/state.dart';
@@ -42,35 +43,144 @@ class ApplicationState extends ConsumerState<Application> {
     required Brightness brightness,
     int? primaryColor,
   }) {
-    final surge = SurgeColors.light();
-    return ColorScheme(
-      brightness: brightness,
-      primary: surge.primary,
-      onPrimary: Colors.white,
-      secondary: surge.primary,
-      onSecondary: Colors.white,
-      error: surge.red,
-      onError: Colors.white,
-      surface: surge.card,
-      onSurface: surge.textPrimary,
-      surfaceContainer: surge.card,
-      surfaceContainerHigh: surge.background,
-      surfaceContainerHighest: surge.background,
-      onSurfaceVariant: surge.textSecondary,
-      outline: surge.separator,
-      outlineVariant: surge.separator,
+    return ref.read(
+      genColorSchemeProvider(brightness, color: Color(primaryColor ?? 0)),
     );
   }
 
-  SystemUiOverlayStyle _getSystemUiOverlayStyle() {
-    final surge = SurgeColors.light();
+  SurgeTheme _getSurgeTheme(Brightness brightness) {
+    return brightness == Brightness.dark
+        ? SurgeTheme.dark()
+        : SurgeTheme.light();
+  }
+
+  SystemUiOverlayStyle _getSystemUiOverlayStyle(Brightness brightness) {
+    final surge = brightness == Brightness.dark
+        ? SurgeColors.dark()
+        : SurgeColors.light();
+    final iconBrightness = brightness == Brightness.dark
+        ? Brightness.light
+        : Brightness.dark;
     return SystemUiOverlayStyle(
       statusBarColor: surge.background,
-      statusBarIconBrightness: Brightness.dark,
-      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: iconBrightness,
+      statusBarBrightness: brightness,
       systemNavigationBarColor: surge.card,
-      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarIconBrightness: iconBrightness,
       systemNavigationBarDividerColor: surge.separator,
+    );
+  }
+
+  NavigationBarThemeData _getNavigationBarTheme(SurgeColors surge) {
+    return NavigationBarThemeData(
+      backgroundColor: surge.card,
+      indicatorColor: surge.primary.withValues(alpha: 0.1),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
+          color: selected ? surge.primary : surge.textSecondary,
+          fontSize: 11,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          letterSpacing: 0,
+        );
+      }),
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          color: selected ? surge.primary : surge.textSecondary,
+          size: 22,
+        );
+      }),
+    );
+  }
+
+  ThemeData _buildTheme({
+    required Brightness brightness,
+    required ThemeProps themeProps,
+  }) {
+    final surge = brightness == Brightness.dark
+        ? SurgeColors.dark()
+        : SurgeColors.light();
+    final baseColorScheme = _getAppColorScheme(
+      brightness: brightness,
+      primaryColor: themeProps.primaryColor,
+    );
+    final colorScheme = brightness == Brightness.dark
+        ? baseColorScheme.toPureBlack(themeProps.pureBlack)
+        : baseColorScheme;
+    return ThemeData(
+      useMaterial3: true,
+      pageTransitionsTheme: _pageTransitionsTheme,
+      extensions: [_getSurgeTheme(brightness)],
+      scaffoldBackgroundColor: surge.background,
+      canvasColor: surge.background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: surge.background,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: surge.textPrimary,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        iconTheme: IconThemeData(color: surge.textPrimary),
+        actionsIconTheme: IconThemeData(color: surge.textPrimary),
+        titleTextStyle: TextStyle(
+          color: surge.textPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0,
+        ),
+      ),
+      navigationBarTheme: _getNavigationBarTheme(surge),
+      colorScheme: colorScheme,
+    );
+  }
+
+  @override
+  Widget build(context) {
+    return Consumer(
+      builder: (_, ref, child) {
+        final locale = ref.watch(
+          appSettingProvider.select((state) => state.locale),
+        );
+        final themeProps = ref.watch(themeSettingProvider);
+        final currentBrightness = ref.watch(currentBrightnessProvider);
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          navigatorKey: globalState.navigatorKey,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          builder: (_, child) {
+            return AnnotatedRegion<SystemUiOverlayStyle>(
+              value: _getSystemUiOverlayStyle(currentBrightness),
+              child: AppEnvManager(
+                child: _buildApp(
+                  child: _buildPlatformState(
+                    child: _buildState(child: _buildPlatformApp(child: child!)),
+                  ),
+                ),
+              ),
+            );
+          },
+          scrollBehavior: BaseScrollBehavior(),
+          title: appName,
+          locale: utils.getLocaleForString(locale),
+          supportedLocales: AppLocalizations.delegate.supportedLocales,
+          themeMode: themeProps.themeMode,
+          theme: _buildTheme(
+            brightness: Brightness.light,
+            themeProps: themeProps,
+          ),
+          darkTheme: _buildTheme(
+            brightness: Brightness.dark,
+            themeProps: themeProps,
+          ),
+          home: child!,
+        );
+      },
+      child: const HomePage(),
     );
   }
 
@@ -159,105 +269,6 @@ class ApplicationState extends ConsumerState<Application> {
 
   Widget _buildApp({required Widget child}) {
     return StatusManager(child: ThemeManager(child: child));
-  }
-
-  @override
-  Widget build(context) {
-    return Consumer(
-      builder: (_, ref, child) {
-        final locale = ref.watch(
-          appSettingProvider.select((state) => state.locale),
-        );
-        final themeProps = ref.watch(themeSettingProvider);
-        final surge = SurgeColors.light();
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          navigatorKey: globalState.navigatorKey,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-          ],
-          builder: (_, child) {
-            return AnnotatedRegion<SystemUiOverlayStyle>(
-              value: _getSystemUiOverlayStyle(),
-              child: AppEnvManager(
-                child: _buildApp(
-                  child: _buildPlatformState(
-                    child: _buildState(child: _buildPlatformApp(child: child!)),
-                  ),
-                ),
-              ),
-            );
-          },
-          scrollBehavior: BaseScrollBehavior(),
-          title: appName,
-          locale: utils.getLocaleForString(locale),
-          supportedLocales: AppLocalizations.delegate.supportedLocales,
-          themeMode: themeProps.themeMode,
-          theme: ThemeData(
-            useMaterial3: true,
-            pageTransitionsTheme: _pageTransitionsTheme,
-            extensions: [SurgeTheme.light()],
-            scaffoldBackgroundColor: surge.background,
-            canvasColor: surge.background,
-            appBarTheme: AppBarTheme(
-              backgroundColor: surge.background,
-              surfaceTintColor: Colors.transparent,
-              foregroundColor: surge.textPrimary,
-              elevation: 0,
-              shadowColor: Colors.transparent,
-              iconTheme: IconThemeData(color: surge.textPrimary),
-              actionsIconTheme: IconThemeData(color: surge.textPrimary),
-              titleTextStyle: TextStyle(
-                color: surge.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0,
-              ),
-            ),
-            navigationBarTheme: NavigationBarThemeData(
-              backgroundColor: surge.card,
-              indicatorColor: surge.primary.withValues(alpha: 0.1),
-              labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                final selected = states.contains(WidgetState.selected);
-                return TextStyle(
-                  color: selected ? surge.primary : surge.textSecondary,
-                  fontSize: 11,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  letterSpacing: 0,
-                );
-              }),
-              iconTheme: WidgetStateProperty.resolveWith((states) {
-                final selected = states.contains(WidgetState.selected);
-                return IconThemeData(
-                  color: selected ? surge.primary : surge.textSecondary,
-                  size: 22,
-                );
-              }),
-            ),
-            colorScheme: _getAppColorScheme(
-              brightness: Brightness.light,
-              primaryColor: themeProps.primaryColor,
-            ),
-          ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            pageTransitionsTheme: _pageTransitionsTheme,
-            extensions: [SurgeTheme.light()],
-            scaffoldBackgroundColor: surge.background,
-            canvasColor: surge.background,
-            colorScheme: _getAppColorScheme(
-              brightness: Brightness.dark,
-              primaryColor: themeProps.primaryColor,
-            ),
-          ),
-          home: child!,
-        );
-      },
-      child: const HomePage(),
-    );
   }
 
   @override

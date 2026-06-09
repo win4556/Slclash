@@ -246,7 +246,7 @@ class _CustomRulesViewState extends ConsumerState<CustomRulesView>
                     animation,
                   );
                 },
-                onReorder: _handleReorder,
+                  onReorder: _handleReorder,
               ),
             ),
     );

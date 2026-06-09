@@ -443,7 +443,7 @@ class _PolicyGroupSummary extends StatelessWidget {
                 EmojiText(
                   selectedProxyName.isEmpty
                       ? group.type.name
-                      : '当前：$selectedProxyName',
+                      : 'Current: $selectedProxyName',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.textTheme.bodySmall?.copyWith(

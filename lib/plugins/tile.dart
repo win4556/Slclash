@@ -14,7 +14,9 @@ abstract mixin class TileListener {
 }
 
 class Tile {
-  final MethodChannel _channel = const MethodChannel('$packageName/tile');
+  final MethodChannel _channel = const MethodChannel(
+    '$methodChannelPrefix/tile',
+  );
 
   Tile._() {
     _channel.setMethodCallHandler(_methodCallHandler);
