@@ -356,7 +356,7 @@ class _ProfilesManageSheetState extends State<_ProfilesManageSheet> {
                   proxyDecorator: (child, index, animation) {
                     return commonProxyDecorator(child, index, animation);
                   },
-                  onReorderItem: _handleReorder,
+                  onReorder: _handleReorder,
                   itemBuilder: (_, index) {
                     final profile = _profiles[index];
                     return _ProfileSortOption(
