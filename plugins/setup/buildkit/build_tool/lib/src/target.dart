@@ -26,6 +26,12 @@ class Target {
     return all.where((t) => t.goos == platformName).toList();
   }
 
+  // Flutter 3.44+ passes android-arm / android-x64, but we only ship arm64.
+  static const _platformAliases = <String, String>{
+    'android-arm': 'android-arm64',
+    'android-x64': 'android-arm64',
+  };
+
   static List<Target> resolveAndroidTargets({
     String? archName,
     String? flutterTargetPlatforms,
@@ -52,7 +58,7 @@ class Target {
     final targets = <Target>[];
     final seen = <String>{};
     for (final platform in flutterTargetPlatforms.split(',')) {
-      final name = platform.trim();
+      final name = _platformAliases[platform.trim()] ?? platform.trim();
       if (name.isEmpty || !seen.add(name)) continue;
       final target = androidTargets.where((t) => t.flutterPlatform == name);
       if (target.isEmpty) {
