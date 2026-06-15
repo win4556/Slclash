@@ -101,9 +101,9 @@ class CoreController {
     required SetupState setupState,
     VoidCallback? preloadInvoke,
   }) async {
-    final message = await _interface.setupConfig(params);
+    final res = _interface.setupConfig(params);
     preloadInvoke?.call();
-    return message;
+    return res;
   }
 
   Future<List<Group>> getProxiesGroups({
