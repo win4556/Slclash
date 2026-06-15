@@ -47,9 +47,14 @@ class GoBuilder {
     env['CC'] = _resolveCc(target);
     env['CFLAGS'] = '-O3 -Werror';
 
+    final version = _resolveMihomoVersion();
+    final ldflags = version.isNotEmpty
+        ? '${config.goLdflags} -X "github.com/metacubex/mihomo/constant.Version=$version"'
+        : config.goLdflags;
+
     final args = [
       'build',
-      '-ldflags=${config.goLdflags}',
+      '-ldflags=$ldflags',
       '-tags=${config.tags}',
       '-buildmode=c-shared',
       '-o',
@@ -151,5 +156,19 @@ class GoBuilder {
     if (file.existsSync()) {
       file.deleteSync();
     }
+  }
+
+  String _resolveMihomoVersion() {
+    try {
+      final result = Process.runSync(
+        'git',
+        ['describe', '--tags', '--abbrev=0'],
+        workingDirectory: _corePath,
+      );
+      if (result.exitCode == 0) {
+        return (result.stdout as String).trim();
+      }
+    } catch (_) {}
+    return '';
   }
 }
