@@ -228,7 +228,7 @@ final class ProxyStateProvider
   }
 }
 
-String _$proxyStateHash() => r'3df11daa70bd06de32da43e9b3e09a74389264b2';
+String _$proxyStateHash() => r'b4a316e7f67927d6903af702d2b4e542c11c11c8';
 
 @ProviderFor(trayState)
 final trayStateProvider = TrayStateProvider._();
@@ -1929,7 +1929,7 @@ final class GenColorSchemeProvider
   }
 }
 
-String _$genColorSchemeHash() => r'25f648db7c33ac00e7152f3d304da372a4de9fdd';
+String _$genColorSchemeHash() => r'202ed6e5c0adef1dc07ab0322773e29cb332b73a';
 
 final class GenColorSchemeFamily extends $Family
     with
@@ -2131,7 +2131,7 @@ final class SharedStateProvider
   }
 }
 
-String _$sharedStateHash() => r'eeae9ab857cd6263f761290054774460f9e86069';
+String _$sharedStateHash() => r'f123a02033a5ff2b579855c78f252a51a96a7691';
 
 @ProviderFor(overlayTopOffset)
 final overlayTopOffsetProvider = OverlayTopOffsetProvider._();
@@ -3177,4 +3177,4 @@ final class SuspendProvider extends $FunctionalProvider<bool, bool, bool>
   }
 }
 
-String _$suspendHash() => r'9ab9210f4f3c70f63d9858d492a9c09b3fb24bf1';
+String _$suspendHash() => r'a8274b8067f0898213b003074cdd41cc59c7b332';

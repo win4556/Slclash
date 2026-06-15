@@ -36,9 +36,10 @@ class _CustomProxyGroupsViewState extends ConsumerState<CustomProxyGroupsView> {
   }
 
   void _handleReorder(int oldIndex, int newIndex) {
+    final nextIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
     ref
         .read(proxyGroupsProvider(widget.profileId).notifier)
-        .order(oldIndex, newIndex);
+        .order(oldIndex, nextIndex);
   }
 
   void _handleEditProxyGroup(
@@ -115,9 +116,9 @@ class _CustomProxyGroupsViewState extends ConsumerState<CustomProxyGroupsView> {
       title: appLocalizations.proxyGroup,
       actions: [
         CommonMinFilledButtonTheme(
-          child: FilledButton(
+          child: SurgeAddButton(
             onPressed: _handleAdd,
-            child: Text(appLocalizations.add),
+            label: appLocalizations.add,
           ),
         ),
         const SizedBox(width: 8),

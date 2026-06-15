@@ -9,17 +9,17 @@ import android.content.pm.ComponentInfo
 import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
-import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.content.FileProvider
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
-import com.follow.clash.R
+import com.slclash.app.R
 import com.follow.clash.common.Components
 import com.follow.clash.common.GlobalState
 import com.follow.clash.common.QuickAction
@@ -160,16 +160,12 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
                 result.success(true)
             }
 
-            "isBatteryOptimizationDisabled" -> {
-                result.success(isBatteryOptimizationDisabled())
-            }
-
-            "openBatteryOptimizationSettings" -> {
-                result.success(openBatteryOptimizationSettings())
-            }
-
             "openAppSettings" -> {
                 result.success(openAppSettings())
+            }
+
+            "installApk" -> {
+                result.success(installApk(call.argument<String>("path")))
             }
 
             else -> {
@@ -211,15 +207,9 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         GlobalState.application.showToast(message)
     }
 
-    private fun isBatteryOptimizationDisabled(): Boolean {
-        val powerManager = getSystemService(GlobalState.application, PowerManager::class.java)
-        return powerManager?.isIgnoringBatteryOptimizations(GlobalState.application.packageName)
-            ?: false
-    }
-
-    private fun openBatteryOptimizationSettings(): Boolean {
+    private fun openAppSettings(): Boolean {
         return try {
-            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = "package:${GlobalState.application.packageName}".toUri()
             }
             activityRef?.get()?.startActivity(intent)
@@ -229,12 +219,34 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         }
     }
 
-    private fun openAppSettings(): Boolean {
+    private fun installApk(path: String?): Boolean {
+        if (path.isNullOrEmpty()) return false
+        val activity = activityRef?.get() ?: return false
+        val apkFile = File(path)
+        if (!apkFile.exists()) return false
         return try {
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = "package:${GlobalState.application.packageName}".toUri()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val canInstall = GlobalState.application.packageManager.canRequestPackageInstalls()
+                if (!canInstall) {
+                    val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                        data = "package:${GlobalState.application.packageName}".toUri()
+                    }
+                    activity.startActivity(settingsIntent)
+                    return false
+                }
             }
-            activityRef?.get()?.startActivity(intent)
+
+            val uri = FileProvider.getUriForFile(
+                GlobalState.application,
+                "${GlobalState.application.packageName}.fileprovider",
+                apkFile
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            activity.startActivity(intent)
             true
         } catch (_: Exception) {
             false
@@ -375,9 +387,6 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
             packageInfo.applicationInfo?.publicSourceDir?.let {
                 ZipFile(File(it)).use {
                     for (packageEntry in it.entries()) {
-                        if (packageEntry.name.startsWith("firebase-")) return false
-                    }
-                    for (packageEntry in it.entries()) {
                         if (!(packageEntry.name.startsWith("classes") && packageEntry.name.endsWith(
                                 ".dex"
                             ))
@@ -410,8 +419,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         scope = CoroutineScope(Dispatchers.Default)
-        channel =
-            MethodChannel(flutterPluginBinding.binaryMessenger, "${Components.PACKAGE_NAME}/app")
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, Components.APP_CHANNEL)
         channel.setMethodCallHandler(this)
     }
 

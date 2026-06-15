@@ -528,9 +528,19 @@ ColorScheme genColorScheme(
 }) {
   final vm2 = ref.watch(
     themeSettingProvider.select(
-      (state) => VM2(state.primaryColor, state.schemeVariant),
+      (state) =>
+          VM3(state.primaryColor, state.schemeVariant, state.dynamicColor),
     ),
   );
+  if (!vm2.c && !ignoreConfig) {
+    return ColorScheme.fromSeed(
+      seedColor: brightness == Brightness.dark
+          ? const Color(0xFF4DA3FF)
+          : const Color(0xFF0A84FF),
+      brightness: brightness,
+      dynamicSchemeVariant: DynamicSchemeVariant.content,
+    );
+  }
   if (color == null && (ignoreConfig == true || vm2.a == null)) {
     // if (globalState.corePalette != null) {
     //   return globalState.corePalette!.toColorScheme(brightness: brightness);
@@ -597,8 +607,7 @@ SharedState sharedState(Ref ref) {
   );
   final appSettingVM3 = ref.watch(
     appSettingProvider.select(
-      (state) =>
-          VM3(state.onlyStatisticsProxy, state.crashlytics, state.testUrl),
+      (state) => VM2(state.onlyStatisticsProxy, state.testUrl),
     ),
   );
   final bypassDomain = ref.watch(
@@ -613,15 +622,13 @@ SharedState sharedState(Ref ref) {
   final currentProfileName = currentProfileVM2.a;
   final selectedMap = currentProfileVM2.b;
   final onlyStatisticsProxy = appSettingVM3.a;
-  final crashlytics = appSettingVM3.b;
-  final testUrl = appSettingVM3.c;
+  final testUrl = appSettingVM3.b;
   final stack = clashConfigVM2.a;
   final port = clashConfigVM2.b;
   return SharedState(
     currentProfileName: currentProfileName,
     onlyStatisticsProxy: onlyStatisticsProxy,
     stopText: currentAppLocalizations.stop,
-    crashlytics: crashlytics,
     stopTip: currentAppLocalizations.stopVpn,
     startTip: currentAppLocalizations.startVpn,
     setupParams: SetupParams(selectedMap: selectedMap, testUrl: testUrl),
@@ -847,7 +854,5 @@ class RuleProvider extends _$RuleProvider with AutoDisposeNotifierMixin {
 
 @riverpod
 bool suspend(Ref ref) {
-  final currentSSID = ref.watch(currentSSIDProvider);
-  final excludeSSIDs = ref.watch(excludeSSIDsProvider);
-  return excludeSSIDs.contains(currentSSID);
+  return false;
 }

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/core/controller.dart';
 import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/manager/window_manager.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/state.dart';
 import 'package:flutter/foundation.dart';
@@ -82,7 +81,6 @@ class _AppStateManagerState extends ConsumerState<AppStateManager>
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     commonPrint.log('$state');
     if (state == AppLifecycleState.resumed) {
-      permissions.check();
       render?.resume();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final ref = globalState.container;
@@ -208,10 +206,6 @@ class AppSidebarContainer extends ConsumerWidget {
               children: [
                 if (system.isMacOS) const SizedBox(height: 22),
                 const SizedBox(height: 10),
-                if (!system.isMacOS) ...[
-                  const ClipRect(child: AppIcon()),
-                  const SizedBox(height: 12),
-                ],
                 Expanded(
                   child: ScrollConfiguration(
                     behavior: HiddenBarScrollBehavior(),

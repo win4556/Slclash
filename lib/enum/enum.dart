@@ -9,7 +9,6 @@ import 'package:fl_clash/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:hotkey_manager/hotkey_manager.dart';
 
 enum SupportPlatform {
   Windows,
@@ -190,19 +189,6 @@ enum KeyboardModifier {
   const KeyboardModifier(this.physicalKeys);
 }
 
-extension KeyboardModifierExt on KeyboardModifier {
-  HotKeyModifier toHotKeyModifier() {
-    return switch (this) {
-      KeyboardModifier.alt => HotKeyModifier.alt,
-      KeyboardModifier.capsLock => HotKeyModifier.capsLock,
-      KeyboardModifier.control => HotKeyModifier.control,
-      KeyboardModifier.fn => HotKeyModifier.fn,
-      KeyboardModifier.meta => HotKeyModifier.meta,
-      KeyboardModifier.shift => HotKeyModifier.shift,
-    };
-  }
-}
-
 enum HotAction { start, view, mode, proxy, tun }
 
 enum ProxiesIconStyle { none, standard, icon }
@@ -298,7 +284,7 @@ enum DashboardWidget {
   networkSpeed(GridItem(crossAxisCellCount: 8, child: NetworkSpeed())),
   outboundModeV2(GridItem(crossAxisCellCount: 8, child: OutboundModeV2())),
   outboundMode(GridItem(crossAxisCellCount: 4, child: OutboundMode())),
-  trafficUsage(GridItem(crossAxisCellCount: 4, child: TrafficUsage())),
+  trafficUsage(GridItem(crossAxisCellCount: 8, child: TrafficUsage())),
   networkDetection(GridItem(crossAxisCellCount: 4, child: NetworkDetection())),
   tunButton(
     GridItem(crossAxisCellCount: 4, child: TUNButton()),

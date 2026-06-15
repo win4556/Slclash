@@ -190,6 +190,7 @@ void main() {
       expect(props.primaryColor, null);
       expect(props.primaryColors, defaultPrimaryColors);
       expect(props.themeMode, ThemeMode.dark);
+      expect(props.dynamicColor, false);
       expect(props.pureBlack, false);
       expect(props.textScale.scale, 1.0);
     });
@@ -203,12 +204,14 @@ void main() {
       const props = ThemeProps(
         primaryColor: 0xFF123456,
         themeMode: ThemeMode.light,
+        dynamicColor: true,
         pureBlack: true,
         textScale: TextScale(enable: true, scale: 1.5),
       );
       final restored = roundTrip(() => props.toJson(), ThemeProps.fromJson);
       expect(restored.primaryColor, 0xFF123456);
       expect(restored.themeMode, ThemeMode.light);
+      expect(restored.dynamicColor, true);
       expect(restored.pureBlack, true);
       expect(restored.textScale.scale, 1.5);
     });
@@ -263,6 +266,7 @@ void main() {
         themeProps: ThemeProps(
           primaryColor: 0xFF00FF00,
           themeMode: ThemeMode.system,
+          dynamicColor: true,
         ),
         windowProps: WindowProps(width: 1280, height: 720),
       );
@@ -273,6 +277,7 @@ void main() {
       expect(restored.appSettingProps.autoLaunch, true);
       expect(restored.networkProps.systemProxy, false);
       expect(restored.vpnProps.enable, false);
+      expect(restored.themeProps.dynamicColor, true);
       expect(restored.windowProps.width, 1280);
       expect(restored.windowProps.height, 720);
     });

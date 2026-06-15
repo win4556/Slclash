@@ -26,6 +26,10 @@ class GlobalState {
   final navigatorKey = GlobalKey<NavigatorState>();
   bool isPre = true;
   late final String coreSHA256;
+  late final String mihomoVersion;
+  late final String mihomoCommit;
+  late final String mihomoReleaseDate;
+  late final String coreBuildTime;
   late final PackageInfo packageInfo;
   Function? updateCurrentDelayDebounce;
   late Measure measure;
@@ -49,6 +53,10 @@ class GlobalState {
 
   Future<ProviderContainer> init(int version) async {
     coreSHA256 = const String.fromEnvironment('CORE_SHA256');
+    mihomoVersion = const String.fromEnvironment('MIHOMO_VERSION');
+    mihomoCommit = const String.fromEnvironment('MIHOMO_COMMIT');
+    mihomoReleaseDate = const String.fromEnvironment('MIHOMO_RELEASE_DATE');
+    coreBuildTime = const String.fromEnvironment('CORE_BUILD_TIME');
     isPre = const String.fromEnvironment('APP_ENV') != 'stable';
     await _initDynamicColor();
     return _initData(version);
@@ -318,12 +326,10 @@ class GlobalState {
     }
     await _handleFailedPreference();
     await _handlerDisclaimer();
-    await _showCrashlyticsTip();
     await container.read(coreActionProvider.notifier).connectCore();
     await container.read(coreActionProvider.notifier).initCore();
     await container.read(setupActionProvider.notifier).initStatus();
     container.read(initProvider.notifier).value = true;
-    permissions.check();
   }
 
   Future<void> _handleFailedPreference() async {
@@ -362,23 +368,6 @@ class GlobalState {
           ),
         ) ??
         false;
-  }
-
-  Future<void> _showCrashlyticsTip() async {
-    if (!system.isAndroid) return;
-    if (container.read(
-      appSettingProvider.select((state) => state.crashlyticsTip),
-    )) {
-      return;
-    }
-    await showMessage(
-      title: currentAppLocalizations.dataCollectionTip,
-      cancelable: false,
-      message: TextSpan(text: currentAppLocalizations.dataCollectionContent),
-    );
-    container
-        .read(appSettingProvider.notifier)
-        .update((state) => state.copyWith(crashlyticsTip: true));
   }
 
   Future<void> _handlerDisclaimer() async {

@@ -135,8 +135,8 @@ class CommonCard extends StatelessWidget {
       return BorderSide.none;
     }
     final hoverColor = isSelected
-        ? colorScheme.primary.opacity80
-        : colorScheme.primary.opacity60;
+        ? colorScheme.outlineVariant
+        : colorScheme.outline.opacity60;
     if (states.contains(WidgetState.hovered) ||
         states.contains(WidgetState.focused) ||
         states.contains(WidgetState.pressed)) {
@@ -144,7 +144,7 @@ class CommonCard extends StatelessWidget {
     }
     return BorderSide(
       color: isSelected
-          ? colorScheme.primary
+          ? colorScheme.outlineVariant
           : colorScheme.surfaceContainerHighest,
     );
   }
@@ -163,12 +163,12 @@ class CommonCard extends StatelessWidget {
     // }
     if (type == CommonCardType.filled) {
       if (isSelected) {
-        return colorScheme.secondaryContainer.opacity80;
+        return colorScheme.surfaceContainerHighest;
       }
       return colorScheme.surfaceContainerHigh;
     }
     if (isSelected) {
-      return colorScheme.secondaryContainer;
+      return colorScheme.surfaceContainerHighest;
     }
     return colorScheme.surfaceContainerLow;
   }
@@ -180,12 +180,12 @@ class CommonCard extends StatelessWidget {
     }
     if (type == CommonCardType.filled) {
       if (isSelected) {
-        return colorScheme.onSecondaryContainer;
+        return colorScheme.onSurfaceVariant;
       }
       return colorScheme.onSurfaceVariant;
     }
     if (isSelected) {
-      return colorScheme.onSecondaryContainer;
+      return colorScheme.onSurfaceVariant;
     }
     return colorScheme.onSurfaceVariant;
   }

@@ -8,10 +8,8 @@ class DonutChartData {
   final double _value;
   final Color color;
 
-  const DonutChartData({
-    required double value,
-    required this.color,
-  }) : _value = value + 1;
+  const DonutChartData({required double value, required this.color})
+    : _value = value + 1;
 
   double get value => _value;
 
@@ -151,10 +149,9 @@ class DonutChartPainter extends CustomPainter {
 
       final interpolatedValue = _expTransform(interpolatedLogValue);
 
-      result.add(DonutChartData(
-        value: interpolatedValue,
-        color: newData[i].color,
-      ));
+      result.add(
+        DonutChartData(value: interpolatedValue, color: newData[i].color),
+      );
     }
 
     _cachedInterpolatedData = result;
@@ -175,7 +172,7 @@ class DonutChartPainter extends CustomPainter {
     if (total <= 0) return;
 
     final center = Offset(size.width / 2, size.height / 2);
-    final strokeWidth = 10.0.ap;
+    final strokeWidth = 12.0.ap;
     final radius = min(size.width / 2, size.height / 2) - strokeWidth / 2;
 
     final gapAngle = 2 * asin(strokeWidth * 1 / (2 * radius)) * 1.2;

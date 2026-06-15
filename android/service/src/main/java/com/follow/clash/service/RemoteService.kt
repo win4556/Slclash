@@ -122,9 +122,9 @@ class RemoteService : Service(),
                             }
                         }
                     }
+                    onStarted.invoke()
                 }
             }
-            onStarted()
         }
 
         override fun updateNotificationParams(params: NotificationParams?) {
@@ -174,10 +174,6 @@ class RemoteService : Service(),
 
                 false -> Core.callSetEventListener(null)
             }
-        }
-
-        override fun setCrashlytics(enable: Boolean) {
-            GlobalState.setCrashlytics(enable)
         }
 
         override fun getRunTime(): Long {

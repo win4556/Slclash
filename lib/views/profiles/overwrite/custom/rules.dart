@@ -33,9 +33,10 @@ class _CustomRulesViewState extends ConsumerState<CustomRulesView>
   }
 
   void _handleReorder(int oldIndex, int newIndex) {
+    final nextIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
     ref
         .read(profileCustomRulesProvider(_profileId).notifier)
-        .order(oldIndex, newIndex);
+        .order(oldIndex, nextIndex);
   }
 
   void _handleSelected(int ruleId) {
@@ -179,9 +180,9 @@ class _CustomRulesViewState extends ConsumerState<CustomRulesView>
                   onPressed: _handleSelectAll,
                   child: Text(appLocalizations.selectAll),
                 )
-              : FilledButton.tonal(
+              : SurgeAddButton(
                   onPressed: _handleAddOrUpdate,
-                  child: Text(appLocalizations.add),
+                  label: appLocalizations.add,
                 ),
         ),
         const SizedBox(width: 8),

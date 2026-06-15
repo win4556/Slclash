@@ -14,6 +14,7 @@ import 'package:fl_clash/widgets/fade_box.dart';
 import 'package:fl_clash/widgets/input.dart';
 import 'package:fl_clash/widgets/list.dart';
 import 'package:fl_clash/widgets/scaffold.dart';
+import 'package:fl_clash/widgets/surge/surge.dart';
 import 'package:fl_clash/widgets/text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -206,141 +207,190 @@ class _BackupAndRestoreState extends ConsumerState<BackupAndRestore>
       isLoading: isLoading,
       title: appLocalizations.backupAndRestore,
       body: ListView(
+        padding: EdgeInsets.only(
+          top: 12,
+          bottom: 32 + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
-          ListHeader(title: appLocalizations.remote),
-          if (dav == null)
-            ListItem(
-              leading: const Icon(Icons.account_box),
-              title: Text(appLocalizations.noInfo),
-              subtitle: Text(appLocalizations.pleaseBindWebDAV),
-              trailing: FilledButton.tonal(
-                onPressed: () {
-                  _showAddWebDAV(dav);
-                },
-                child: Text(appLocalizations.bind),
-              ),
-            )
-          else ...[
-            ListItem(
-              leading: const Icon(Icons.account_box),
-              title: TooltipText(
-                text: Text(
-                  dav.user,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(appLocalizations.connectivity),
-                    ValueListenableBuilder(
-                      valueListenable: _isCompleter,
-                      builder: (_, isCompleter, _) {
-                        return Center(
-                          child: FadeThroughBox(
-                            child: isCompleter == null
-                                ? const SizedBox(
-                                    width: 12,
-                                    height: 12,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 1,
-                                    ),
-                                  )
-                                : Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: !isCompleter
-                                          ? context.colorScheme.error
-                                          : Colors.green.harmonizeWith(
-                                              context.colorScheme.primary,
-                                            ),
-                                    ),
-                                    width: 12,
-                                    height: 12,
-                                  ),
-                          ),
-                        );
-                      },
+          SurgeSection(
+            title: appLocalizations.remote,
+            showDividers: true,
+            children: [
+              if (dav == null)
+                ListItem(
+                  leading: const Icon(Icons.account_box),
+                  title: Text(appLocalizations.noInfo),
+                  subtitle: Text(appLocalizations.pleaseBindWebDAV),
+                  trailing: _BackupPillButton(
+                    label: appLocalizations.bind,
+                    onPressed: () {
+                      _showAddWebDAV(dav);
+                    },
+                  ),
+                )
+              else ...[
+                ListItem(
+                  leading: const Icon(Icons.account_box),
+                  title: TooltipText(
+                    text: Text(
+                      dav.user,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
-              ),
-              trailing: FilledButton.tonal(
-                onPressed: () {
-                  _showAddWebDAV(dav);
-                },
-                child: Text(appLocalizations.edit),
-              ),
-            ),
-            const SizedBox(height: 4),
-            ListItem.input(
-              title: Text(appLocalizations.file),
-              subtitle: Text(dav.fileName),
-              delegate: InputDelegate(
-                title: appLocalizations.file,
-                value: dav.fileName,
-                resetValue: defaultDavFileName,
-                onChanged: (value) {
-                  _handleChange(value, ref);
-                },
-              ),
-            ),
-            ListItem(
-              onTap: () {
-                _backupOnWebDAV();
-              },
-              title: Text(appLocalizations.backup),
-              subtitle: Text(appLocalizations.remoteBackupDesc),
-            ),
-            ListItem(
-              onTap: () {
-                _handleRestoreOnWebDAV();
-              },
-              title: Text(appLocalizations.restore),
-              subtitle: Text(appLocalizations.restoreFromWebDAVDesc),
-            ),
-          ],
-          ListHeader(title: appLocalizations.local),
-          ListItem(
-            onTap: () {
-              _backupOnLocal();
-            },
-            title: Text(appLocalizations.backup),
-            subtitle: Text(appLocalizations.localBackupDesc),
-          ),
-          ListItem(
-            onTap: () {
-              _handleRestoreOnLocal();
-            },
-            title: Text(appLocalizations.restore),
-            subtitle: Text(appLocalizations.restoreFromFileDesc),
-          ),
-          ListHeader(title: appLocalizations.options),
-          Consumer(
-            builder: (_, ref, _) {
-              final restoreStrategy = ref.watch(
-                appSettingProvider.select((state) => state.restoreStrategy),
-              );
-              return ListItem(
-                onTap: () {
-                  _handleUpdateRestoreStrategy();
-                },
-                title: Text(appLocalizations.restoreStrategy),
-                trailing: FilledButton(
-                  onPressed: () {
-                    _handleUpdateRestoreStrategy();
-                  },
-                  child: Text(
-                    Intl.message('restoreStrategy_${restoreStrategy.name}'),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(appLocalizations.connectivity),
+                        const SizedBox(width: 8),
+                        ValueListenableBuilder(
+                          valueListenable: _isCompleter,
+                          builder: (_, isCompleter, _) {
+                            return Center(
+                              child: FadeThroughBox(
+                                child: isCompleter == null
+                                    ? const SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 1,
+                                        ),
+                                      )
+                                    : Container(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: !isCompleter
+                                              ? context.colorScheme.error
+                                              : Colors.green.harmonizeWith(
+                                                  context.colorScheme.primary,
+                                                ),
+                                        ),
+                                        width: 12,
+                                        height: 12,
+                                      ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  trailing: _BackupPillButton(
+                    label: appLocalizations.edit,
+                    onPressed: () {
+                      _showAddWebDAV(dav);
+                    },
                   ),
                 ),
-              );
-            },
+                ListItem.input(
+                  title: Text(appLocalizations.file),
+                  subtitle: Text(dav.fileName),
+                  delegate: InputDelegate(
+                    title: appLocalizations.file,
+                    value: dav.fileName,
+                    resetValue: defaultDavFileName,
+                    onChanged: (value) {
+                      _handleChange(value, ref);
+                    },
+                  ),
+                ),
+                ListItem(
+                  onTap: () {
+                    _backupOnWebDAV();
+                  },
+                  title: Text(appLocalizations.backup),
+                  subtitle: Text(appLocalizations.remoteBackupDesc),
+                ),
+                ListItem(
+                  onTap: () {
+                    _handleRestoreOnWebDAV();
+                  },
+                  title: Text(appLocalizations.restore),
+                  subtitle: Text(appLocalizations.restoreFromWebDAVDesc),
+                ),
+              ],
+            ],
+          ),
+          SurgeSection(
+            title: appLocalizations.local,
+            showDividers: true,
+            children: [
+              ListItem(
+                onTap: () {
+                  _backupOnLocal();
+                },
+                title: Text(appLocalizations.backup),
+                subtitle: Text(appLocalizations.localBackupDesc),
+              ),
+              ListItem(
+                onTap: () {
+                  _handleRestoreOnLocal();
+                },
+                title: Text(appLocalizations.restore),
+                subtitle: Text(appLocalizations.restoreFromFileDesc),
+              ),
+            ],
+          ),
+          SurgeSection(
+            title: appLocalizations.options,
+            showDividers: true,
+            children: [
+              Consumer(
+                builder: (_, ref, _) {
+                  final restoreStrategy = ref.watch(
+                    appSettingProvider.select((state) => state.restoreStrategy),
+                  );
+                  return ListItem(
+                    onTap: () {
+                      _handleUpdateRestoreStrategy();
+                    },
+                    title: Text(appLocalizations.restoreStrategy),
+                    trailing: _BackupPillButton(
+                      label: Intl.message(
+                        'restoreStrategy_${restoreStrategy.name}',
+                      ),
+                      onPressed: _handleUpdateRestoreStrategy,
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BackupPillButton extends StatelessWidget {
+  const _BackupPillButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final surge = SurgeTheme.of(context);
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        minimumSize: const Size(0, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        foregroundColor: surge.textPrimary,
+        backgroundColor: surge.textSecondary.withValues(alpha: 0.08),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      child: Text(
+        label,
+        style: context.textTheme.labelMedium?.copyWith(
+          color: surge.textPrimary,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0,
+        ),
       ),
     );
   }

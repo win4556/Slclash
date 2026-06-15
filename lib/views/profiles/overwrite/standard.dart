@@ -122,11 +122,11 @@ class _StandardContentState extends ConsumerState<StandardContent> {
                               },
                               child: Text(appLocalizations.selectAll),
                             )
-                          : FilledButton.tonal(
+                          : SurgeAddButton(
                               onPressed: () {
                                 _handleAddOrUpdate();
                               },
-                              child: Text(appLocalizations.add),
+                              label: appLocalizations.add,
                             ),
                     ),
                   ],
@@ -166,9 +166,14 @@ class _StandardContentState extends ConsumerState<StandardContent> {
                   );
                 },
                 itemExtent: ruleItemHeight,
-                onReorder: ref
-                    .read(profileAddedRulesProvider(_profileId).notifier)
-                    .order,
+                onReorder: (oldIndex, newIndex) {
+                  final nextIndex = oldIndex < newIndex
+                      ? newIndex + 1
+                      : newIndex;
+                  ref
+                      .read(profileAddedRulesProvider(_profileId).notifier)
+                      .order(oldIndex, nextIndex);
+                },
               );
             },
           ),

@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# Dev tools cache (local, do not commit)
+.dev-tools/
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -59,6 +62,14 @@ docs/
 /android/core/**/includes/
 /android/core/**/cmake-build-*/
 /android/core/**/jniLibs/
+
+# Android signing
+/android/app/keystore.jks
+/android/app/*.keystore
+/android/key.properties
+/android/local.properties
+*.jks
+*.keystore
 
 #FlClash
 /libclash/

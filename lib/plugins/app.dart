@@ -12,7 +12,7 @@ class App {
   Function()? onExit;
 
   App._internal() {
-    methodChannel = const MethodChannel('$packageName/app');
+    methodChannel = const MethodChannel('$methodChannelPrefix/app');
     methodChannel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'exit':
@@ -53,13 +53,18 @@ class App {
   }
 
   Future<bool?> requestNotificationsPermission() async {
-    return methodChannel.invokeMethod<bool>(
-      'requestNotificationsPermission',
-    );
+    return methodChannel.invokeMethod<bool>('requestNotificationsPermission');
   }
 
   Future<bool> openFile(String path) async {
     return await methodChannel.invokeMethod<bool>('openFile', {'path': path}) ??
+        false;
+  }
+
+  Future<bool> installApk(String path) async {
+    return await methodChannel.invokeMethod<bool>('installApk', {
+          'path': path,
+        }) ??
         false;
   }
 
@@ -74,9 +79,7 @@ class App {
   }
 
   Future<bool?> tip(String? message) async {
-    return methodChannel.invokeMethod<bool>('tip', {
-      'message': '$message',
-    });
+    return methodChannel.invokeMethod<bool>('tip', {'message': '$message'});
   }
 
   Future<bool?> initShortcuts() async {
@@ -90,16 +93,6 @@ class App {
     return methodChannel.invokeMethod<bool>('updateExcludeFromRecents', {
       'value': value,
     });
-  }
-
-  Future<bool?> isBatteryOptimizationDisabled() async {
-    if (!Platform.isAndroid) return true;
-    return methodChannel.invokeMethod<bool>('isBatteryOptimizationDisabled');
-  }
-
-  Future<bool?> openBatteryOptimizationSettings() async {
-    if (!Platform.isAndroid) return false;
-    return methodChannel.invokeMethod<bool>('openBatteryOptimizationSettings');
   }
 
   Future<bool?> openAppSettings() async {

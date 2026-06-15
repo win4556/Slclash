@@ -138,9 +138,6 @@ class _EditProxyProvidersViewState extends ConsumerState<EditProxyProvidersView>
   }
 
   void _handleReorder(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
     ref.read(proxyGroupProvider.notifier).update((state) {
       final nextItems = List<String>.from(state.use ?? []);
       final item = nextItems.removeAt(oldIndex);
@@ -237,9 +234,9 @@ class _EditProxyProvidersViewState extends ConsumerState<EditProxyProvidersView>
                   info: Info(label: appLocalizations.proxyProviders),
                   actions: [
                     CommonMinFilledButtonTheme(
-                      child: FilledButton.tonal(
+                      child: SurgeAddButton(
                         onPressed: _handleToAddProxyProvidersView,
-                        child: Text(appLocalizations.add),
+                        label: appLocalizations.add,
                       ),
                     ),
                   ],

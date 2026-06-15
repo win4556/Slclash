@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:fl_clash/common/color.dart';
 import 'package:flutter/material.dart';
 
 class Point {
@@ -15,6 +14,10 @@ class LineChart extends StatefulWidget {
   final Color color;
   final Duration duration;
   final bool gradient;
+  final double? minY;
+  final double? maxY;
+  final double gradientStartAlpha;
+  final double gradientEndAlpha;
 
   const LineChart({
     super.key,
@@ -22,6 +25,10 @@ class LineChart extends StatefulWidget {
     required this.points,
     required this.color,
     this.duration = Duration.zero,
+    this.minY,
+    this.maxY,
+    this.gradientStartAlpha = 0.16,
+    this.gradientEndAlpha = 0.03,
   });
 
   @override
@@ -48,7 +55,9 @@ class _LineChartState extends State<LineChart>
   @override
   void didUpdateWidget(LineChart oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.points != _points) {
+    if (widget.points != _points ||
+        widget.minY != oldWidget.minY ||
+        widget.maxY != oldWidget.maxY) {
       _points = widget.points;
       _prevRenderPoints = _currentRenderPoints;
       _currentRenderPoints = _getRenderPoints(_points);
@@ -66,14 +75,14 @@ class _LineChartState extends State<LineChart>
     if (points.isEmpty) return [];
     double maxX = points[0].x;
     double minX = points[0].x;
-    double maxY = points[0].y;
-    double minY = points[0].y;
+    double maxY = widget.maxY ?? points[0].y;
+    double minY = widget.minY ?? points[0].y;
 
     for (final point in points) {
       if (point.x > maxX) maxX = point.x;
       if (point.x < minX) minX = point.x;
-      if (point.y > maxY) maxY = point.y;
-      if (point.y < minY) minY = point.y;
+      if (widget.maxY == null && point.y > maxY) maxY = point.y;
+      if (widget.minY == null && point.y < minY) minY = point.y;
     }
 
     return points.map((e) {
@@ -99,6 +108,8 @@ class _LineChartState extends State<LineChart>
                 progress: _controller.value,
                 gradient: widget.gradient,
                 color: widget.color,
+                gradientStartAlpha: widget.gradientStartAlpha,
+                gradientEndAlpha: widget.gradientEndAlpha,
               ),
               child: SizedBox(
                 height: container.maxHeight,
@@ -118,6 +129,8 @@ class LineChartPainter extends CustomPainter {
   final double progress;
   final Color color;
   final bool gradient;
+  final double gradientStartAlpha;
+  final double gradientEndAlpha;
 
   late final Paint _strokePaint;
   late final Paint _fillPaint;
@@ -125,6 +138,8 @@ class LineChartPainter extends CustomPainter {
   Shader? _cachedShader;
   Size? _cachedShaderSize;
   Color? _cachedShaderColor;
+  double? _cachedGradientStartAlpha;
+  double? _cachedGradientEndAlpha;
 
   LineChartPainter({
     required this.prevRenderPoints,
@@ -132,10 +147,12 @@ class LineChartPainter extends CustomPainter {
     required this.progress,
     required this.color,
     required this.gradient,
+    required this.gradientStartAlpha,
+    required this.gradientEndAlpha,
   }) {
     _strokePaint = Paint()
       ..color = color
-      ..strokeWidth = 2.0
+      ..strokeWidth = 2.2
       ..style = PaintingStyle.stroke;
 
     _fillPaint = Paint()..style = PaintingStyle.fill;
@@ -200,11 +217,16 @@ class LineChartPainter extends CustomPainter {
   Shader _getShader(Size size) {
     if (_cachedShader == null ||
         _cachedShaderSize != size ||
-        _cachedShaderColor != color) {
+        _cachedShaderColor != color ||
+        _cachedGradientStartAlpha != gradientStartAlpha ||
+        _cachedGradientEndAlpha != gradientEndAlpha) {
       final gradient = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [color.opacity38, color.opacity10],
+        colors: [
+          color.withValues(alpha: gradientStartAlpha),
+          color.withValues(alpha: gradientEndAlpha),
+        ],
       );
 
       const strokeWidth = 2.0;
@@ -213,6 +235,8 @@ class LineChartPainter extends CustomPainter {
       );
       _cachedShaderSize = size;
       _cachedShaderColor = color;
+      _cachedGradientStartAlpha = gradientStartAlpha;
+      _cachedGradientEndAlpha = gradientEndAlpha;
     }
     return _cachedShader!;
   }
@@ -244,6 +268,8 @@ class LineChartPainter extends CustomPainter {
         oldDelegate.prevRenderPoints != prevRenderPoints ||
         oldDelegate.currentRenderPoints != currentRenderPoints ||
         oldDelegate.color != color ||
-        oldDelegate.gradient != gradient;
+        oldDelegate.gradient != gradient ||
+        oldDelegate.gradientStartAlpha != gradientStartAlpha ||
+        oldDelegate.gradientEndAlpha != gradientEndAlpha;
   }
 }

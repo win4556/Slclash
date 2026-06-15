@@ -1,0 +1,173 @@
+name: Mihomo Core Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Create an update PR even when the recorded Mihomo version matches latest stable"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "20 3 * * 1"
+
+concurrency:
+  group: mihomo-core-update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-core:
+    name: Check Mihomo stable and open update PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Resolve latest stable Mihomo release
+        id: latest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST_TAG="$(gh api repos/MetaCubeX/mihomo/releases/latest --jq '.tag_name')"
+
+          if [ -z "$LATEST_TAG" ] || ! [[ "$LATEST_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Unexpected Mihomo release tag: $LATEST_TAG"
+            exit 1
+          fi
+
+          echo "tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${LATEST_TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Latest stable Mihomo release: $LATEST_TAG"
+
+      - name: Compare current core version
+        id: current
+        shell: bash
+        run: |
+          CURRENT_VERSION="$(sed -n 's/.*Version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' core/Clash.Meta/constant/version.go | head -n 1)"
+          CURRENT_COMMIT="$(git -C core/Clash.Meta rev-parse --short=12 HEAD)"
+
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "Could not resolve current Mihomo version."
+            exit 1
+          fi
+
+          echo "version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "commit=$CURRENT_COMMIT" >> "$GITHUB_OUTPUT"
+          echo "Current Mihomo core: v$CURRENT_VERSION ($CURRENT_COMMIT)"
+
+      - name: Stop when already up to date
+        if: ${{ inputs.force != true && steps.current.outputs.version == steps.latest.outputs.version }}
+        shell: bash
+        run: |
+          echo "Mihomo core is already at ${{ steps.latest.outputs.tag }}."
+
+      - name: Update submodule and bump app patch version
+        if: ${{ inputs.force == true || steps.current.outputs.version != steps.latest.outputs.version }}
+        id: update
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          LATEST_TAG="${{ steps.latest.outputs.tag }}"
+          LATEST_VERSION="${{ steps.latest.outputs.version }}"
+          BRANCH="codex/mihomo-core-${LATEST_TAG}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+
+          git -C core/Clash.Meta remote set-url origin https://github.com/chen08209/Clash.Meta.git || true
+          if git -C core/Clash.Meta ls-remote --exit-code origin "refs/tags/$LATEST_TAG" >/dev/null 2>&1; then
+            UPDATE_REMOTE="origin"
+          else
+            git -C core/Clash.Meta remote add metacubex https://github.com/MetaCubeX/mihomo.git 2>/dev/null || \
+              git -C core/Clash.Meta remote set-url metacubex https://github.com/MetaCubeX/mihomo.git
+            git submodule set-url core/Clash.Meta https://github.com/MetaCubeX/mihomo.git
+            UPDATE_REMOTE="metacubex"
+          fi
+
+          git -C core/Clash.Meta fetch --tags "$UPDATE_REMOTE"
+          git -C core/Clash.Meta checkout -q "$LATEST_TAG"
+
+          VERSION_LINE="$(grep -E '^version: ' pubspec.yaml)"
+          CURRENT_APP_VERSION="${VERSION_LINE#version: }"
+          BASE_VERSION="${CURRENT_APP_VERSION%%+*}"
+          BUILD_NUMBER="${CURRENT_APP_VERSION#*+}"
+
+          if [ "$BASE_VERSION" = "$CURRENT_APP_VERSION" ]; then
+            BUILD_NUMBER="0"
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
+          if ! [[ "$MAJOR" =~ ^[0-9]+$ && "$MINOR" =~ ^[0-9]+$ && "$PATCH" =~ ^[0-9]+$ ]]; then
+            echo "Unsupported pubspec version: $CURRENT_APP_VERSION"
+            exit 1
+          fi
+
+          NEXT_PATCH=$((PATCH + 1))
+          if [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            NEXT_BUILD=$((10#$BUILD_NUMBER + 1))
+          else
+            NEXT_BUILD="$(date -u +'%Y%m%d%H')"
+          fi
+          NEXT_APP_VERSION="$MAJOR.$MINOR.$NEXT_PATCH+$NEXT_BUILD"
+
+          perl -0pi -e "s/^version: .*/version: $NEXT_APP_VERSION/m" pubspec.yaml
+
+          NEW_COMMIT="$(git -C core/Clash.Meta rev-parse --short=12 HEAD)"
+
+          git add .gitmodules core/Clash.Meta pubspec.yaml
+          if git diff --cached --quiet; then
+            echo "No update changes were produced."
+            exit 0
+          fi
+
+          git commit -m "chore: update mihomo core to $LATEST_TAG"
+          git push --force-with-lease origin "$BRANCH"
+
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "app_version=$NEXT_APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "mihomo_commit=$NEW_COMMIT" >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request
+        if: ${{ steps.update.outputs.branch != '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="${{ steps.update.outputs.branch }}"
+          TITLE="chore: update Mihomo core to ${{ steps.latest.outputs.tag }}"
+          BODY_FILE="$(mktemp)"
+
+          cat > "$BODY_FILE" <<EOF
+          ## Mihomo Core Update
+
+          - Previous Mihomo version: v${{ steps.current.outputs.version }}
+          - Previous Mihomo commit: ${{ steps.current.outputs.commit }}
+          - New Mihomo version: ${{ steps.latest.outputs.tag }}
+          - New Mihomo commit: ${{ steps.update.outputs.mihomo_commit }}
+          - App version bump: ${{ steps.update.outputs.app_version }}
+
+          ## Checklist
+
+          - [ ] Confirm submodule points to the expected Mihomo tag
+          - [ ] Confirm \`.gitmodules\` is correct
+          - [ ] Confirm Android arm64-v8a local build passes
+          - [ ] Confirm GitHub Actions release workflow still targets Android only
+          - [ ] Install generated APK manually after release
+          EOF
+
+          EXISTING_PR="$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$EXISTING_PR" ]; then
+            gh pr edit "$EXISTING_PR" --title "$TITLE" --body-file "$BODY_FILE"
+          else
+            gh pr create --head "$BRANCH" --title "$TITLE" --body-file "$BODY_FILE"
+          fi

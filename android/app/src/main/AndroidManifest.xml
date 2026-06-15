@@ -25,19 +25,21 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
-        android:name=".Application"
+        android:name="com.follow.clash.Application"
         android:banner="@mipmap/ic_banner"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="FlClash">
+        android:label="SlClash">
         <activity
-            android:name=".MainActivity"
+            android:name="com.follow.clash.MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:exported="true"
             android:hardwareAccelerated="true"
             android:launchMode="singleTop"
+            android:screenOrientation="portrait"
             android:theme="@style/LaunchTheme"
             android:windowSoftInputMode="adjustResize">
             <meta-data
@@ -68,7 +70,7 @@
         </activity>
 
         <activity
-            android:name=".TempActivity"
+            android:name="com.follow.clash.TempActivity"
             android:excludeFromRecents="true"
             android:exported="true"
             android:theme="@style/TransparentTheme">
@@ -87,10 +89,10 @@
         </activity>
 
         <service
-            android:name=".TileService"
+            android:name="com.follow.clash.TileService"
             android:exported="true"
             android:icon="@drawable/ic"
-            android:label="FlClash"
+            android:label="SlClash"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
@@ -101,7 +103,7 @@
         </service>
 
         <receiver
-            android:name=".BroadcastReceiver"
+            android:name="com.follow.clash.BroadcastReceiver"
             android:enabled="true"
             android:exported="true"
             android:permission="${applicationId}.permission.RECEIVE_BROADCASTS">
@@ -110,6 +112,16 @@
                 <action android:name="${applicationId}.intent.action.SERVICE_DESTROYED" />
             </intent-filter>
         </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <meta-data
             android:name="flutterEmbedding"

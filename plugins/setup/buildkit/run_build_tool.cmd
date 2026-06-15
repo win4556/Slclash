@@ -23,7 +23,19 @@ if not exist "%BUILD_TOOL_TEMP_DIR%" (
 )
 cd /D "%BUILD_TOOL_TEMP_DIR%"
 
-SET DART=%FLUTTER_ROOT%\bin\cache\dart-sdk\bin\dart
+if not "%FLUTTER_ROOT%" == "" (
+    SET DART=%FLUTTER_ROOT%\bin\cache\dart-sdk\bin\dart
+) else if exist "D:\Code\Tools\flutter\bin\cache\dart-sdk\bin\dart.exe" (
+    SET DART=D:\Code\Tools\flutter\bin\cache\dart-sdk\bin\dart.exe
+) else (
+    for /f "delims=" %%I in ('where dart.bat 2^>nul') do (
+        if "%DART%" == "" SET DART=%%I
+    )
+    if "%DART%" == "" (
+        echo Error: Could not find dart.bat in PATH.
+        exit /b 1
+    )
+)
 
 set BUILD_TOOL_PKG_DIR_POSIX=%BUILD_TOOL_PKG_DIR:\=/%
 
@@ -37,7 +49,7 @@ set BUILD_TOOL_PKG_DIR_POSIX=%BUILD_TOOL_PKG_DIR:\=/%
     echo.
     echo dependencies:
     echo   build_tool:
-    echo     path: %BUILD_TOOL_PKG_DIR_POSIX%
+    echo     path: "%BUILD_TOOL_PKG_DIR_POSIX%"
 ) >pubspec.yaml
 
 if not exist bin (

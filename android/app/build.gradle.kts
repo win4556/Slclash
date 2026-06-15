@@ -5,8 +5,6 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
 }
 
 val localPropertiesFile = rootProject.file("local.properties")
@@ -22,10 +20,13 @@ val mKeyAlias: String? = localProperties.getProperty("keyAlias")
 val mKeyPassword: String? = localProperties.getProperty("keyPassword")
 val isRelease =
     mStoreFile.exists() && mStorePassword != null && mKeyAlias != null && mKeyPassword != null
+val skipAbiFilters = providers.gradleProperty("slclashSkipAbiFilters")
+    .map { it.toBoolean() }
+    .getOrElse(false)
 
 
 android {
-    namespace = "com.follow.clash"
+    namespace = "com.slclash.app"
     compileSdk = libs.versions.compileSdk.get().toInt()
     ndkVersion = libs.versions.ndkVersion.get()
 
@@ -37,11 +38,16 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.follow.clash"
+        applicationId = "com.slclash.app"
         minSdk = flutter.minSdkVersion
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        if (!skipAbiFilters) {
+            ndk {
+                abiFilters += listOf("arm64-v8a")
+            }
+        }
     }
 
     signingConfigs {
@@ -98,12 +104,10 @@ flutter {
 dependencies {
     implementation(project(":service"))
     implementation(project(":common"))
+    implementation(libs.androidx.core)
     implementation(libs.core.splashscreen)
     implementation(libs.gson)
     implementation(libs.smali.dexlib2) {
         exclude(group = "com.google.guava", module = "guava")
     }
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.crashlytics.ndk)
-    implementation(libs.firebase.analytics)
 }

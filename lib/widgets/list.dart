@@ -3,6 +3,7 @@ import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/providers/app.dart';
 import 'package:fl_clash/state.dart';
+import 'package:fl_clash/widgets/surge/surge.dart';
 import 'package:fl_clash/widgets/inherited.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -408,7 +409,7 @@ class ListItem<T> extends StatelessWidget {
             switchDelegate.onChanged!(!switchDelegate.value);
           }
         },
-        trailing: Switch(
+        trailing: SurgeSwitch(
           value: switchDelegate.value,
           onChanged: switchDelegate.onChanged,
         ),
@@ -429,6 +430,74 @@ class ListItem<T> extends StatelessWidget {
     }
 
     return _buildListTile(onTap: onTap);
+  }
+}
+
+class SurgeSwitch extends StatelessWidget {
+  const SurgeSwitch({super.key, required this.value, this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final surge = SurgeTheme.of(context);
+    final enabled = onChanged != null;
+    final knobColor = enabled
+        ? surge.elevatedCard
+        : surge.textSecondary.withValues(alpha: 0.5);
+    final trackColor = !enabled
+        ? surge.textSecondary.withValues(alpha: 0.1)
+        : value
+        ? surge.primary
+        : surge.fill;
+    final knobAlign = value ? Alignment.centerRight : Alignment.centerLeft;
+
+    return Semantics(
+      toggled: value,
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? () => onChanged!(!value) : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          width: 48,
+          height: 28,
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: trackColor,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: value
+                  ? Colors.transparent
+                  : surge.separator.withValues(alpha: 0.8),
+              width: 0.5,
+            ),
+          ),
+          child: AnimatedAlign(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            alignment: knobAlign,
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: knobColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: surge.shadow.withValues(alpha: 0.65),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -580,10 +649,20 @@ List<Widget> generateInfoSection({
 }
 
 Widget generateListView(List<Widget> items) {
-  return ListView.builder(
-    itemCount: items.length,
-    itemBuilder: (_, index) => items[index],
-    padding: const EdgeInsets.only(bottom: 16),
+  return Builder(
+    builder: (context) {
+      final surge = SurgeTheme.of(context);
+      return ColoredBox(
+        color: surge.background,
+        child: ListView(
+          padding: EdgeInsets.only(
+            top: 12,
+            bottom: 32 + MediaQuery.paddingOf(context).bottom,
+          ),
+          children: [SurgeSection(showDividers: true, children: items)],
+        ),
+      );
+    },
   );
 }
 

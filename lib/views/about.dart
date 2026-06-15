@@ -1,29 +1,38 @@
 import 'dart:async';
 
 import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/l10n/l10n.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/state.dart';
 import 'package:fl_clash/widgets/list.dart';
 import 'package:fl_clash/widgets/scaffold.dart';
+import 'package:fl_clash/widgets/surge/surge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-@immutable
-class Contributor {
-  final String avatar;
-  final String name;
-  final String link;
-
-  const Contributor({
-    required this.avatar,
-    required this.name,
-    required this.link,
-  });
-}
-
 class AboutView extends StatelessWidget {
   const AboutView({super.key});
+
+  static const _slclashDesc =
+      'SlClash 是基于 FlClash 和 Mihomo 内核私有裁剪和重设计的 Android 代理客户端。';
+  static const _unknown = 'unknown';
+
+  String get _coreVersion {
+    final version = globalState.mihomoVersion;
+    if (version.isEmpty) return _unknown;
+    return version.startsWith('v') ? version : 'v$version';
+  }
+
+  String get _coreReleaseDate {
+    final releaseDate = globalState.mihomoReleaseDate.takeFirstValid([
+      globalState.coreBuildTime,
+    ]);
+    if (releaseDate.isEmpty) return _unknown;
+    final dateTime = DateTime.tryParse(releaseDate);
+    if (dateTime == null) return releaseDate;
+    return dateTime.toLocal().show;
+  }
+
+  String get _coreInfo => 'Mihomo Core $_coreVersion · 发布日期 $_coreReleaseDate';
 
   Future<void> _checkUpdate(BuildContext context) async {
     final data = await globalState.safeRun<Map<String, dynamic>?>(
@@ -35,12 +44,13 @@ class AboutView extends StatelessWidget {
         .checkUpdateResultHandle(data: data, isUser: true);
   }
 
-  List<Widget> _buildMoreSection(BuildContext context) {
+  Widget _buildMoreSection(BuildContext context) {
     final appLocalizations = context.appLocalizations;
-    return generateSection(
-      separated: false,
+    return SurgeSection(
       title: appLocalizations.more,
-      items: [
+      margin: EdgeInsets.zero,
+      showDividers: true,
+      children: [
         ListItem(
           title: Text(appLocalizations.checkUpdate),
           onTap: () {
@@ -48,9 +58,9 @@ class AboutView extends StatelessWidget {
           },
         ),
         ListItem(
-          title: const Text('Telegram'),
+          title: const Text('原生项目'),
           onTap: () {
-            globalState.openUrl('https://t.me/FlClash');
+            globalState.openUrl('https://github.com/chen08209/FlClash');
           },
           trailing: const Icon(Icons.launch),
         ),
@@ -74,134 +84,108 @@ class AboutView extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildContributorsSection(AppLocalizations appLocalizations) {
-    const contributors = [
-      Contributor(
-        avatar: 'assets/images/avatar/june2.jpg',
-        name: 'June2',
-        link: 'https://t.me/Jibadong',
-      ),
-      Contributor(
-        avatar: 'assets/images/avatar/arue.jpg',
-        name: 'Arue',
-        link: 'https://t.me/xrcm6868',
-      ),
-    ];
-    return generateSection(
-      separated: false,
-      title: appLocalizations.otherContributors,
-      items: [
-        ListItem(
-          title: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Wrap(
-              spacing: 24,
-              children: [
-                for (final contributor in contributors)
-                  Avatar(contributor: contributor),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final appLocalizations = context.appLocalizations;
-    final items = [
-      ListTile(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final surge = SurgeTheme.of(context);
+    return BaseScaffold(
+      title: appLocalizations.about,
+      body: ColoredBox(
+        color: surge.background,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            32 + MediaQuery.paddingOf(context).bottom,
+          ),
           children: [
-            Consumer(
-              builder: (_, ref, _) {
-                return _DeveloperModeDetector(
-                  child: Wrap(
-                    spacing: 16,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Image.asset(
-                          'assets/images/icon.png',
-                          width: 64,
-                          height: 64,
+            SurgeCard(
+              borderRadius: 18,
+              shadow: true,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Consumer(
+                    builder: (_, ref, _) {
+                      return _DeveloperModeDetector(
+                        child: Row(
+                          children: [
+                            Image.asset(
+                              'assets/images/icon.png',
+                              width: 58,
+                              height: 58,
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    appName,
+                                    style: context.textTheme.titleLarge
+                                        ?.copyWith(
+                                          color: surge.textPrimary,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    globalState.packageInfo.version,
+                                    style: context.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: surge.textSecondary,
+                                          letterSpacing: 0,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    _coreInfo,
+                                    style: context.textTheme.labelSmall
+                                        ?.copyWith(
+                                          color: surge.textSecondary,
+                                          letterSpacing: 0,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            appName,
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                          Text(
-                            globalState.packageInfo.version,
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
-                        ],
-                      ),
-                    ],
+                        onEnterDeveloperMode: () {
+                          ref
+                              .read(appSettingProvider.notifier)
+                              .update(
+                                (state) => state.copyWith(developerMode: true),
+                              );
+                          context.showNotifier(
+                            appLocalizations.developerModeEnableTip,
+                          );
+                        },
+                      );
+                    },
                   ),
-                  onEnterDeveloperMode: () {
-                    ref
-                        .read(appSettingProvider.notifier)
-                        .update((state) => state.copyWith(developerMode: true));
-                    context.showNotifier(
-                      appLocalizations.developerModeEnableTip,
-                    );
-                  },
-                );
-              },
+                  const SizedBox(height: 14),
+                  Divider(height: 0, color: surge.separator),
+                  const SizedBox(height: 12),
+                  Text(
+                    _slclashDesc,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: surge.textSecondary,
+                      height: 1.35,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              appLocalizations.desc,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            const SizedBox(height: 16),
+            _buildMoreSection(context),
           ],
         ),
       ),
-      const SizedBox(height: 12),
-      ..._buildContributorsSection(appLocalizations),
-      ..._buildMoreSection(context),
-    ];
-    return BaseScaffold(
-      title: appLocalizations.about,
-      body: Padding(
-        padding: kMaterialListPadding.copyWith(top: 16, bottom: 16),
-        child: generateListView(items),
-      ),
-    );
-  }
-}
-
-class Avatar extends StatelessWidget {
-  final Contributor contributor;
-
-  const Avatar({super.key, required this.contributor});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      child: Column(
-        children: [
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: CircleAvatar(
-              foregroundImage: AssetImage(contributor.avatar),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(contributor.name, style: context.textTheme.bodySmall),
-        ],
-      ),
-      // onTap: () {
-      //   globalState.openUrl(contributor.link);
-      // },
     );
   }
 }

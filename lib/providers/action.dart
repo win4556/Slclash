@@ -10,8 +10,11 @@ import 'package:fl_clash/plugins/app.dart';
 import 'package:fl_clash/plugins/service.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/state.dart';
+import 'package:fl_clash/widgets/dialog.dart';
+import 'package:fl_clash/widgets/surge/surge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -95,7 +98,7 @@ class CommonAction extends _$CommonAction {
         cancelText: isUser ? null : currentAppLocalizations.noLongerRemind,
       );
       if (res == true) {
-        launchUrl(Uri.parse('https://github.com/$repository/releases/latest'));
+        await _downloadAndInstallUpdate(data);
       } else if (!isUser && res == false) {
         ref
             .read(appSettingProvider.notifier)
@@ -107,6 +110,145 @@ class CommonAction extends _$CommonAction {
         message: TextSpan(text: currentAppLocalizations.checkUpdateError),
       );
     }
+  }
+
+  Map<String, dynamic>? _resolveAndroidApkAsset(Map<String, dynamic> data) {
+    final assets = data['assets'];
+    if (assets is! List) return null;
+    final apkAssets = assets.whereType<Map<String, dynamic>>().where((asset) {
+      final name = asset['name']?.toString().toLowerCase() ?? '';
+      final url = asset['browser_download_url']?.toString() ?? '';
+      return name.endsWith('.apk') && url.isNotEmpty;
+    }).toList();
+    if (apkAssets.isEmpty) return null;
+    return apkAssets.firstWhere(
+      (asset) =>
+          asset['name']?.toString().toLowerCase().contains('arm64-v8a') == true,
+      orElse: () => apkAssets.first,
+    );
+  }
+
+  Future<void> _downloadAndInstallUpdate(Map<String, dynamic> data) async {
+    final asset = _resolveAndroidApkAsset(data);
+    if (asset == null) {
+      launchUrl(Uri.parse('https://github.com/$repository/releases/latest'));
+      return;
+    }
+
+    final url = asset['browser_download_url']?.toString();
+    final name = asset['name']?.toString() ?? 'SlClash-update.apk';
+    if (url == null || url.isEmpty) {
+      launchUrl(Uri.parse('https://github.com/$repository/releases/latest'));
+      return;
+    }
+
+    final progress = ValueNotifier<double?>(0);
+    final dialogContext = globalState.navigatorKey.currentContext!;
+    var dialogClosed = false;
+    void closeProgressDialog() {
+      if (dialogClosed || !dialogContext.mounted) return;
+      dialogClosed = true;
+      Navigator.of(dialogContext).pop();
+    }
+
+    unawaited(
+      globalState.showCommonDialog<void>(
+        context: dialogContext,
+        dismissible: false,
+        child: _UpdateDownloadProgressDialog(progress: progress),
+      ),
+    );
+
+    await globalState.safeRun<void>(
+      () async {
+        final cacheDir = await appPath.cacheDir.future;
+        final updateDir = Directory(p.join(cacheDir.path, 'updates'));
+        if (!updateDir.existsSync()) {
+          updateDir.createSync(recursive: true);
+        }
+        for (final file in updateDir.listSync()) {
+          if (file is File && file.path.endsWith('.apk')) {
+            file.deleteSync();
+          }
+        }
+
+        final apkPath = p.join(updateDir.path, name);
+        await request.dio.download(
+          url,
+          apkPath,
+          onReceiveProgress: (received, total) {
+            if (total > 0) {
+              progress.value = (received / total).clamp(0, 1);
+            } else {
+              progress.value = null;
+            }
+          },
+        );
+        progress.value = 1;
+        closeProgressDialog();
+        final installed = await app?.installApk(apkPath) ?? false;
+        if (!installed) {
+          throw '请允许 SlClash 安装未知应用后，再次点击安装更新。';
+        }
+      },
+      title: currentAppLocalizations.download,
+      silence: false,
+    );
+    closeProgressDialog();
+    progress.dispose();
+  }
+}
+
+class _UpdateDownloadProgressDialog extends StatelessWidget {
+  const _UpdateDownloadProgressDialog({required this.progress});
+
+  final ValueNotifier<double?> progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final surge = SurgeTheme.of(context);
+    final textTheme = context.textTheme;
+    return CommonDialog(
+      title: '下载更新',
+      overrideScroll: true,
+      child: ValueListenableBuilder<double?>(
+        valueListenable: progress,
+        builder: (_, value, _) {
+          final percent = value == null ? null : (value * 100).floor();
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                percent == null ? '正在下载 APK...' : '正在下载 APK · $percent%',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: surge.textPrimary,
+                  letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  minHeight: 8,
+                  value: value,
+                  color: surge.primary,
+                  backgroundColor: surge.fill,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '下载完成后将自动打开系统安装界面。',
+                style: textTheme.bodySmall?.copyWith(
+                  color: surge.textSecondary,
+                  letterSpacing: 0,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }
 
