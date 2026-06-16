@@ -792,41 +792,6 @@ class _PlatformLatencyPanel extends StatelessWidget {
   }
 }
 
-class _LatencyRefreshButton extends StatelessWidget {
-  const _LatencyRefreshButton({
-    required this.isTesting,
-    required this.color,
-    required this.inactiveColor,
-    required this.onRefresh,
-  });
-
-  final bool isTesting;
-  final Color color;
-  final Color inactiveColor;
-  final VoidCallback onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 18,
-      height: 18,
-      child: IconButton(
-        onPressed: isTesting ? null : onRefresh,
-        icon: AnimatedRotation(
-          turns: isTesting ? 1 : 0,
-          duration: commonDuration,
-          child: const Icon(Icons.refresh_rounded, size: 15),
-        ),
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        color: color,
-        disabledColor: inactiveColor,
-        tooltip: 'Refresh',
-      ),
-    );
-  }
-}
-
 class _PlatformLatencyRow extends StatelessWidget {
   const _PlatformLatencyRow({
     required this.name,
