@@ -56,6 +56,14 @@ type TestDelayParams struct {
 	Timeout   int64  `json:"timeout"`
 }
 
+type MediaCheckParams struct {
+	ProxyName   string `json:"proxy-name"`
+	ProfilePath string `json:"profile-path"`
+	Timeout     int64  `json:"timeout"`
+	HealthOnly  bool   `json:"health-only"`
+	Mode        string `json:"mode"`
+}
+
 type ExternalProvider struct {
 	Name             string                     `json:"name"`
 	Type             string                     `json:"type"`
@@ -85,6 +93,7 @@ const (
 	getTotalTrafficMethod          Method = "getTotalTraffic"
 	resetTrafficMethod             Method = "resetTraffic"
 	asyncTestDelayMethod           Method = "asyncTestDelay"
+	mediaCheckMethod               Method = "mediaCheck"
 	getConnectionsMethod           Method = "getConnections"
 	closeConnectionsMethod         Method = "closeConnections"
 	resetConnectionsMethod         Method = "resetConnections"

@@ -202,6 +202,23 @@ class CoreController {
     return Delay.fromJson(json.decode(data));
   }
 
+  Future<String> mediaCheck(
+    String proxyName, {
+    int? profileId,
+    bool healthOnly = false,
+    String mode = 'full',
+  }) async {
+    final profilePath = profileId == null
+        ? null
+        : await appPath.getProfilePath(profileId.toString());
+    return _interface.mediaCheck(
+      proxyName,
+      profilePath: profilePath,
+      healthOnly: healthOnly,
+      mode: mode,
+    );
+  }
+
   Future<Map<String, dynamic>> getConfig(int id) async {
     final profilePath = await appPath.getProfilePath(id.toString());
     final res = await _interface.getConfig(profilePath);

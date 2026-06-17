@@ -439,17 +439,18 @@ class _HeroActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surge = SurgeTheme.of(context);
+    final baseColor = isStart ? surge.red : surge.green;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [surge.green, Color.lerp(surge.green, Colors.black, 0.16)!],
+          colors: [baseColor, Color.lerp(baseColor, Colors.black, 0.16)!],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: surge.green.withValues(alpha: 0.2),
+            color: baseColor.withValues(alpha: 0.2),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),

@@ -16,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'edit.dart';
+import 'media_check.dart';
 import 'preview.dart';
 
 class ProfilesView extends StatefulWidget {
@@ -141,6 +142,7 @@ class _ProfilesViewState extends State<ProfilesView> {
                           const SizedBox(height: 8),
                           _CurrentProfileSummary(
                             profile: currentProfile,
+                            profiles: state.profiles,
                             expanded: _isCurrentExpanded,
                             onExpandChanged: () {
                               setState(() {
@@ -155,28 +157,69 @@ class _ProfilesViewState extends State<ProfilesView> {
                           count: state.profiles.length,
                         ),
                         const SizedBox(height: 8),
-                        for (int i = 0; i < state.profiles.length; i++)
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: i == state.profiles.length - 1 ? 0 : 10,
-                            ),
-                            child: ProfileItem(
-                              profile: state.profiles[i],
-                              groupValue: state.currentProfileId,
-                              onChanged: (profileId) {
-                                ref
-                                        .read(currentProfileIdProvider.notifier)
-                                        .value =
-                                    profileId;
-                              },
-                            ),
-                          ),
+                        _ProfileListContainer(
+                          profiles: state.profiles,
+                          currentProfileId: state.currentProfileId,
+                          onSelect: (profileId) {
+                            ref
+                                    .read(currentProfileIdProvider.notifier)
+                                    .value =
+                                profileId;
+                          },
+                        ),
                       ],
                     ),
                   ),
                 ),
         );
       },
+    );
+  }
+}
+
+class _MediaCheckEntryPill extends StatelessWidget {
+  const _MediaCheckEntryPill({
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.18), width: 0.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -579,11 +622,13 @@ class _ProfileSortOption extends StatelessWidget {
 class _CurrentProfileSummary extends StatefulWidget {
   const _CurrentProfileSummary({
     required this.profile,
+    required this.profiles,
     required this.expanded,
     required this.onExpandChanged,
   });
 
   final Profile profile;
+  final List<Profile> profiles;
   final bool expanded;
   final VoidCallback onExpandChanged;
 
@@ -667,10 +712,134 @@ class _CurrentProfileSummaryState extends State<_CurrentProfileSummary> {
                       )
                     : const SizedBox(width: double.infinity),
               ),
+              const SizedBox(height: 12),
+              _MediaCheckInlineAction(
+                profile: widget.profile,
+                profiles: widget.profiles,
+              ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _MediaCheckInlineAction extends StatelessWidget {
+  const _MediaCheckInlineAction({
+    required this.profile,
+    required this.profiles,
+  });
+
+  final Profile profile;
+  final List<Profile> profiles;
+
+  @override
+  Widget build(BuildContext context) {
+    final surge = SurgeTheme.of(context);
+    final profileCount = profiles.length;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          BaseNavigator.push(
+            context,
+            ProfileMediaCheckView(profiles: profiles, initialProfile: profile),
+          );
+        },
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+          decoration: BoxDecoration(
+            color: surge.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: surge.primary.withValues(alpha: 0.18),
+              width: 0.7,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: surge.primary.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(17),
+                    ),
+                    child: Icon(
+                      Icons.fact_check_rounded,
+                      color: surge.primary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '节点批量检测',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.textTheme.titleSmall?.copyWith(
+                            color: surge.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          profileCount > 1 ? '按订阅手动检测 · 结果缓存' : '手动检测 · 结果缓存',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.textTheme.labelSmall?.copyWith(
+                            color: surge.textSecondary,
+                            fontSize: 11,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: surge.textSecondary,
+                    size: 22,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _MediaCheckEntryPill(
+                    label: 'GPT',
+                    color: surge.purple,
+                    icon: Icons.psychology_alt_rounded,
+                  ),
+                  const SizedBox(width: 8),
+                  _MediaCheckEntryPill(
+                    label: 'YouTube',
+                    color: surge.orange,
+                    icon: Icons.smart_display_rounded,
+                  ),
+                  const SizedBox(width: 8),
+                  _MediaCheckEntryPill(
+                    label: '健康',
+                    color: surge.green,
+                    icon: Icons.eco_outlined,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -787,16 +956,31 @@ class _CurrentProfileProxyPreview extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(
-            height: math.min(300, proxies.length * 53).toDouble(),
-            child: ScrollConfiguration(
-              behavior: HiddenBarScrollBehavior(),
-              child: ListView.separated(
-                padding: EdgeInsets.zero,
-                itemCount: proxies.length,
-                itemBuilder: (_, index) =>
-                    _ProfileProxyPreviewCard(proxy: proxies[index]),
-                separatorBuilder: (_, _) => const SizedBox(height: 6),
+          Container(
+            height: math.min(300, proxies.length * 53).toDouble() + 10,
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: surge.textSecondary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(surge.radii.list),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(surge.radii.list),
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  scrollbarTheme: const ScrollbarThemeData(
+                    mainAxisMargin: 8,
+                  ),
+                ),
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: proxies.length,
+                    itemBuilder: (_, index) =>
+                        _ProfileProxyPreviewCard(proxy: proxies[index]),
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
+                  ),
+                ),
               ),
             ),
           ),
@@ -1066,6 +1250,299 @@ class _ProfileSectionHeader extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _ProfileListContainer extends StatelessWidget {
+  const _ProfileListContainer({
+    required this.profiles,
+    required this.currentProfileId,
+    required this.onSelect,
+  });
+
+  final List<Profile> profiles;
+  final int? currentProfileId;
+  final void Function(int? profileId) onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final surge = SurgeTheme.of(context);
+    return SurgeCard(
+      shadow: true,
+      padding: const EdgeInsets.all(7),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(surge.radii.list),
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            scrollbarTheme: const ScrollbarThemeData(
+              mainAxisMargin: 8,
+            ),
+          ),
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: profiles.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 6),
+              itemBuilder: (_, i) => _ProfileListItem(
+                profile: profiles[i],
+                isSelected: profiles[i].id == currentProfileId,
+                onTap: () => onSelect(profiles[i].id),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileListItem extends StatelessWidget {
+  const _ProfileListItem({
+    required this.profile,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final Profile profile;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  List<Widget> _buildUrlProfileInfo(BuildContext context) {
+    final surge = SurgeTheme.of(context);
+    final subscriptionInfo = profile.subscriptionInfo;
+    return [
+      const SizedBox(height: 6),
+      if (subscriptionInfo != null)
+        SubscriptionInfoView(subscriptionInfo: subscriptionInfo),
+      LastUpdateTimeText(
+        lastUpdateDate: profile.lastUpdateDate,
+        style: context.textTheme.labelSmall?.copyWith(
+          color: surge.textSecondary,
+          fontSize: 12,
+          letterSpacing: 0,
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildFileProfileInfo(BuildContext context) {
+    final surge = SurgeTheme.of(context);
+    return [
+      const SizedBox(height: 6),
+      LastUpdateTimeText(
+        lastUpdateDate: profile.lastUpdateDate,
+        style: context.textTheme.labelSmall?.copyWith(
+          color: surge.textSecondary,
+          fontSize: 12,
+          letterSpacing: 0,
+        ),
+      ),
+    ];
+  }
+
+  Future<void> _handleDeleteProfile(BuildContext context) async {
+    final appLocalizations = context.appLocalizations;
+    final res = await globalState.showMessage(
+      title: appLocalizations.tip,
+      message: TextSpan(
+        text: appLocalizations.deleteTip(appLocalizations.profile),
+      ),
+    );
+    if (res != true) return;
+    await globalState.container
+        .read(profilesActionProvider.notifier)
+        .deleteProfile(profile.id);
+  }
+
+  Future<void> _handlePreview(BuildContext context) async {
+    BaseNavigator.push<String>(context, PreviewProfileView(profile: profile));
+  }
+
+  Future<void> _updateProfile() async {
+    if (profile.type == ProfileType.file) return;
+    await globalState.loadingRun(() async {
+      await globalState.container
+          .read(profilesActionProvider.notifier)
+          .updateProfile(profile, showLoading: true);
+    }, tag: LoadingTag.profiles);
+  }
+
+  void _handleShowEditExtendPage(BuildContext context) {
+    showExtend(
+      context,
+      builder: (_) {
+        return AdaptiveSheetScaffold(
+          body: EditProfileView(profile: profile, context: context),
+          title: context.appLocalizations.edit,
+        );
+      },
+    );
+  }
+
+  Future<void> _handleCopyLink(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: profile.url));
+    if (context.mounted) {
+      context.showNotifier(context.appLocalizations.copySuccess);
+    }
+  }
+
+  Future<void> _handleExportFile(BuildContext context) async {
+    final appLocalizations = context.appLocalizations;
+    final res = await globalState.safeRun<bool>(() async {
+      final mFile = await profile.file;
+      final value = await picker.saveFile(
+        profile.realLabel,
+        mFile.readAsBytesSync(),
+      );
+      if (value == null) return false;
+      return true;
+    }, title: appLocalizations.tip);
+    if (res == true && context.mounted) {
+      context.showNotifier(appLocalizations.exportSuccess);
+    }
+  }
+
+  void _handlePushGenProfilePage(BuildContext context, int id) {
+    BaseNavigator.push(context, OverwriteView(profileId: id));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final surge = SurgeTheme.of(context);
+    return Consumer(
+      builder: (_, ref, _) {
+        final dynamicColor = ref.watch(
+          themeSettingProvider.select((state) => state.dynamicColor),
+        );
+        final selectedBorderColor = !dynamicColor
+            ? const Color(0xFFD8DAE0)
+            : surge.primary;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            SurgeCard(
+              backgroundColor: isSelected ? surge.selectedFill : surge.card,
+              border: Border.all(
+                color: isSelected ? selectedBorderColor : surge.separator,
+                width: 0.5,
+              ),
+              shadow: false,
+              borderRadius: surge.radii.list,
+              padding: EdgeInsets.zero,
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: _ProfileTextBlock(
+                        profile: profile,
+                        info: switch (profile.type) {
+                          ProfileType.file =>
+                            _buildFileProfileInfo(context),
+                          ProfileType.url =>
+                            _buildUrlProfileInfo(context),
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _ProfilePill(
+                      label: profile.type.name,
+                      color: surge.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    SizedBox(
+                      height: 40,
+                      width: 40,
+                      child: Consumer(
+                        builder: (_, ref, _) {
+                          final isUpdating = ref.watch(
+                            isUpdatingProvider(profile.updatingKey),
+                          );
+                          return FadeThroughBox(
+                            child: isUpdating
+                                ? const Padding(
+                                    key: ValueKey('loading'),
+                                    padding: EdgeInsets.all(9),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : _ProfileActionButton(
+                                    onEdit: () {
+                                      _handleShowEditExtendPage(context);
+                                    },
+                                    onPreview: () {
+                                      _handlePreview(context);
+                                    },
+                                    onSync:
+                                        profile.type == ProfileType.url
+                                            ? _updateProfile
+                                            : null,
+                                    onOverride: () {
+                                      _handlePushGenProfilePage(
+                                        context,
+                                        profile.id,
+                                      );
+                                    },
+                                    onCopyLink:
+                                        profile.type == ProfileType.url
+                                            ? () {
+                                                _handleCopyLink(context);
+                                              }
+                                            : null,
+                                    onExport: () {
+                                      _handleExportFile(context);
+                                    },
+                                    onDelete: () {
+                                      _handleDeleteProfile(context);
+                                    },
+                                  ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              right: 10,
+              top: -6,
+              child: AnimatedScale(
+                scale: isSelected ? 1 : 0.65,
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutCubic,
+                child: AnimatedOpacity(
+                  opacity: isSelected ? 1 : 0,
+                  duration: const Duration(milliseconds: 160),
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: surge.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: surge.card, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: surge.shadow,
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -944,23 +944,34 @@ class _PlatformBrandIcon extends StatelessWidget {
       return _BrandImageIcon(
         tooltip: target.name,
         assetPath: 'assets/images/icon/latency_chatgpt.png',
+        tintInDarkMode: true,
       );
     }
     return _BrandImageIcon(
       tooltip: target.name,
       assetPath: 'assets/images/icon/latency_github.png',
+      tintInDarkMode: true,
     );
   }
 }
 
 class _BrandImageIcon extends StatelessWidget {
-  const _BrandImageIcon({required this.tooltip, required this.assetPath});
+  const _BrandImageIcon({
+    required this.tooltip,
+    required this.assetPath,
+    this.tintInDarkMode = false,
+  });
 
   final String tooltip;
   final String assetPath;
+  final bool tintInDarkMode;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tintColor = tintInDarkMode && isDark
+        ? SurgeTheme.of(context).textPrimary
+        : null;
     return Tooltip(
       message: tooltip,
       child: SizedBox(
@@ -970,6 +981,8 @@ class _BrandImageIcon extends StatelessWidget {
           assetPath,
           fit: BoxFit.contain,
           filterQuality: FilterQuality.medium,
+          color: tintColor,
+          colorBlendMode: tintColor == null ? null : BlendMode.srcIn,
         ),
       ),
     );

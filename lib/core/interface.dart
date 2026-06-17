@@ -22,6 +22,14 @@ mixin CoreInterface {
 
   Future<String> asyncTestDelay(String url, String proxyName);
 
+  Future<String> mediaCheck(
+    String proxyName, {
+    String? profilePath,
+    Duration? timeout,
+    bool healthOnly = false,
+    String mode = 'full',
+  });
+
   Future<String> updateConfig(UpdateParams updateParams);
 
   Future<String> setupConfig(SetupParams setupParams);
@@ -329,6 +337,30 @@ abstract class CoreHandlerInterface with CoreInterface {
           timeout: const Duration(seconds: 6),
         ) ??
         json.encode(Delay(name: proxyName, value: -1, url: url));
+  }
+
+  @override
+  Future<String> mediaCheck(
+    String proxyName, {
+    String? profilePath,
+    Duration? timeout,
+    bool healthOnly = false,
+    String mode = 'full',
+  }) async {
+    final requestTimeout = timeout ?? Duration(seconds: healthOnly ? 12 : 22);
+    final mediaCheckParams = {
+      'proxy-name': proxyName,
+      'profile-path': ?profilePath,
+      'timeout': requestTimeout.inMilliseconds,
+      'health-only': healthOnly,
+      'mode': mode,
+    };
+    return await _invoke<String>(
+          method: ActionMethod.mediaCheck,
+          data: json.encode(mediaCheckParams),
+          timeout: requestTimeout,
+        ) ??
+        '';
   }
 
   @override

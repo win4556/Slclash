@@ -101,6 +101,10 @@ func handleAction(action *Action, result ActionResult) {
 			result.success(value)
 		})
 		return
+	case mediaCheckMethod:
+		data := action.Data.(string)
+		result.success(handleMediaCheck(data))
+		return
 	case getConnectionsMethod:
 		result.success(handleGetConnections())
 		return
