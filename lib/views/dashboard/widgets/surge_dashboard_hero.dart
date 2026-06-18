@@ -308,7 +308,7 @@ class _HeroModeCard extends StatelessWidget {
   }
 }
 
-class _HeroModeCardSurface extends StatelessWidget {
+class _HeroModeCardSurface extends ConsumerWidget {
   const _HeroModeCardSurface({
     required this.title,
     required this.modeLabel,
@@ -330,7 +330,7 @@ class _HeroModeCardSurface extends StatelessWidget {
   final bool onBlue;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final surge = SurgeTheme.of(context);
     final activeFill = dynamicColor
         ? dashboardDynamicActiveFill
@@ -341,6 +341,22 @@ class _HeroModeCardSurface extends StatelessWidget {
     final secondary = foreground.withValues(
       alpha: onBlue && dynamicColor ? 0.92 : 0.82,
     );
+
+    // 获取 GLOBAL 组的当前选中节点
+    final globalGroup = ref.watch(
+      currentGroupsStateProvider.select(
+        (state) => state.value.getGroup(GroupName.GLOBAL.name),
+      ),
+    );
+    final selectedProxyName = ref.watch(
+      selectedProxyNameProvider(GroupName.GLOBAL.name),
+    );
+
+    // 显示内容：有节点显示节点名，否则显示模式
+    final displayText = selectedProxyName?.isNotEmpty == true 
+        ? selectedProxyName!
+        : modeLabel;
+
     return Container(
       width: double.infinity,
       height: 80,
@@ -395,16 +411,38 @@ class _HeroModeCardSurface extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  modeLabel,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: context.textTheme.bodyMedium?.copyWith(
-                    color: secondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    height: 1.08,
-                    letterSpacing: 0,
+                GestureDetector(
+                  onTap: globalGroup != null && active
+                      ? () => _showProxySelector(context, ref)
+                      : null,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          displayText,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            color: secondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            height: 1.08,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                      ),
+                      if (globalGroup != null && active)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(
+                            Icons.keyboard_arrow_down,
+                            size: 16,
+                            color: Colors.white70,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -419,6 +457,125 @@ class _HeroModeCardSurface extends StatelessWidget {
             dynamicColor: dynamicColor,
             onBlue: onBlue,
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showProxySelector(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _ProxySelectorSheet(),
+    );
+  }
+}
+
+class _ProxySelectorSheet extends ConsumerWidget {
+  const _ProxySelectorSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final groupName = GroupName.GLOBAL.name;
+    final group = ref.watch(
+      currentGroupsStateProvider.select(
+        (state) => state.value.getGroup(groupName),
+      ),
+    );
+
+    if (group == null) return const SizedBox.shrink();
+
+    final selectedProxyName = ref.watch(selectedProxyNameProvider(groupName));
+    final proxies = group.all;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 顶部把手
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[400],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // 标题
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Text(
+                  groupName,
+                  style: context.textTheme.titleMedium,
+                ),
+                const Spacer(),
+                // 延迟测试按钮
+                TextButton.icon(
+                  onPressed: () {
+                    // 测试全部节点延迟
+                    for (final proxy in proxies) {
+                      ref.read(delayProvider(proxyName: proxy.name));
+                    }
+                  },
+                  icon: const Icon(Icons.speed, size: 18),
+                  label: const Text('测延迟'),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          // 节点列表
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: proxies.length,
+              itemBuilder: (context, index) {
+                final proxy = proxies[index];
+                final isSelected = proxy.name == selectedProxyName;
+                final delay = ref.watch(delayProvider(proxyName: proxy.name));
+
+                return ListTile(
+                  leading: isSelected
+                      ? Icon(Icons.check_circle, color: context.colorScheme.primary)
+                      : const Icon(Icons.circle_outlined),
+                  title: Text(proxy.name),
+                  subtitle: proxy.type != proxy.name ? Text(proxy.type) : null,
+                  trailing: delay != null
+                      ? Text(
+                          '${delay}ms',
+                          style: TextStyle(
+                            color: delay < 100 
+                                ? Colors.green 
+                                : delay < 300 
+                                    ? Colors.orange 
+                                    : Colors.red,
+                          ),
+                        )
+                      : null,
+                  onTap: () {
+                    // 切换节点
+                    ref.read(changeProxyDebounceProvider).changeProxy(
+                      ChangeProxyParams(
+                        groupName: groupName,
+                        proxyName: proxy.name,
+                      ),
+                    );
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+          // 底部安全区域
+          SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
     );
