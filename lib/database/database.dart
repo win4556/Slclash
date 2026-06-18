@@ -140,6 +140,23 @@ class Database extends _$Database {
     }
   }
 
+  Future<void> restoreProfilesOnly(
+    List<Profile> profiles, {
+    bool isOverride = false,
+  }) async {
+    if (profiles.isEmpty) return;
+    await batch((b) {
+      if (isOverride) {
+        profilesDao.setAllWithBatch(b, profiles);
+      } else {
+        profilesDao.putAllWithBatch(
+          b,
+          profiles.map((item) => item.toCompanion()),
+        );
+      }
+    });
+  }
+
   Future<void> setProfileCustomData(
     int profileId,
     List<ProxyGroup> groups,

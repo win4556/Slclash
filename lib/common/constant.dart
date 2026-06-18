@@ -133,3 +133,6 @@ const main = (config) => {
 
 const backupDatabaseName = 'database.sqlite';
 const configJsonName = 'config.json';
+const profilesBackupMetadataName = 'metadata.json';
+const profilesBackupDirName = 'profiles';
+const profilesBackupType = 'profiles_only_v1';

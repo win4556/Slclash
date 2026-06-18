@@ -518,6 +518,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "通过WebDAV恢复数据",
     ),
     "restoreOnlyConfig": MessageLookupByLibrary.simpleMessage("仅恢复配置文件"),
+    "restoreProfilesOnlyDesc": MessageLookupByLibrary.simpleMessage(
+      "将只恢复订阅和节点数据，不会恢复应用设置、主题、WebDAV、脚本、规则和自定义代理组。",
+    ),
     "restoreStrategy": MessageLookupByLibrary.simpleMessage("恢复策略"),
     "restoreStrategy_compatible": MessageLookupByLibrary.simpleMessage("兼容"),
     "restoreStrategy_override": MessageLookupByLibrary.simpleMessage("覆盖"),

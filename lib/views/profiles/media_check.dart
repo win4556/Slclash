@@ -564,9 +564,9 @@ class _ProfileMediaCheckViewState extends State<ProfileMediaCheckView>
                   )
                 else if (rows.isEmpty && _running.isEmpty && _queued.isEmpty)
                   _EmptyMediaCheckState(targetCount: _targets.length)
-                else if (rows.isEmpty)
+                else if (rows.isEmpty && _running.isEmpty && _queued.isEmpty)
                   _EmptyFilteredState(filter: _filter)
-                else
+                else if (rows.isNotEmpty)
                   _MediaCheckResultList(
                     rows: rows,
                     filter: _filter,
@@ -578,7 +578,10 @@ class _ProfileMediaCheckViewState extends State<ProfileMediaCheckView>
                   if (_targetOfKey(key) case final target?)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: _MediaCheckPendingCard(target: target),
+                      child: _MediaCheckPendingCard(
+                        target: target,
+                        filter: _filter,
+                      ),
                     ),
               ],
             ),
@@ -646,7 +649,7 @@ class _MediaCheckControlCard extends StatelessWidget {
     return SurgeCard(
       shadow: true,
       backgroundColor: surge.elevatedCard,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -675,7 +678,7 @@ class _MediaCheckControlCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -694,14 +697,18 @@ class _MediaCheckControlCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 9),
+          Divider(height: 1, color: surge.separator),
+          const SizedBox(height: 8),
           _ControlMetricsLine(
             targetCount: targetCount,
             cachedCount: cachedCount,
             concurrency: concurrency,
             runningCount: runningCount,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          Divider(height: 1, color: surge.separator),
+          const SizedBox(height: 4),
           Row(
             children: [
               Flexible(
@@ -733,19 +740,24 @@ class _MediaCheckControlCard extends StatelessWidget {
               const SizedBox(width: 8),
               SizedBox(
                 width: 100,
-                child: Slider(
-                  value: concurrency.toDouble(),
-                  min: 1,
-                  max: 10,
-                  divisions: 9,
-                  onChanged: onConcurrencyChanged == null
-                      ? null
-                      : (value) => onConcurrencyChanged!(value.round()),
+                height: 32,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(trackHeight: 5),
+                  child: Slider(
+                    value: concurrency.toDouble(),
+                    min: 1,
+                    max: 10,
+                    divisions: 9,
+                    onChanged: onConcurrencyChanged == null
+                        ? null
+                        : (value) => onConcurrencyChanged!(value.round()),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
+          Divider(height: 1, color: surge.separator),
           _ObservationControl(
             observing: observing,
             intervalLabel: observeIntervalLabel,
@@ -753,9 +765,8 @@ class _MediaCheckControlCard extends StatelessWidget {
             onChanged: onObservingChanged,
             onIntervalTap: onObserveIntervalTap,
           ),
-          const SizedBox(height: 12),
           Divider(height: 1, color: surge.separator),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _MediaCheckInlineStats(
             filter: filter,
             summary: summary,
@@ -785,36 +796,21 @@ class _ObservationControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surge = SurgeTheme.of(context);
-    return Container(
-      height: 38,
-      padding: const EdgeInsets.only(left: 12, right: 6),
-      decoration: BoxDecoration(
-        color: observing ? surge.green.withValues(alpha: 0.1) : surge.fill,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(
-          color: observing
-              ? surge.green.withValues(alpha: 0.22)
-              : surge.separator,
-          width: 0.5,
-        ),
-      ),
+    return SizedBox(
+      height: 46,
       child: Row(
         children: [
-          Icon(
-            Icons.monitor_heart_outlined,
-            size: 16,
-            color: observing ? surge.green : surge.textSecondary,
-          ),
-          const SizedBox(width: 8),
+          Icon(Icons.monitor_heart_outlined, size: 18, color: surge.green),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               '健康观测',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: context.textTheme.labelMedium?.copyWith(
-                color: observing ? surge.green : surge.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                color: observing ? surge.green : surge.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
                 letterSpacing: 0,
               ),
             ),
@@ -822,21 +818,22 @@ class _ObservationControl extends StatelessWidget {
           TextButton(
             onPressed: enabled ? onIntervalTap : null,
             style: TextButton.styleFrom(
-              minimumSize: const Size(48, 30),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(48, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              foregroundColor: observing ? surge.green : surge.textSecondary,
+              foregroundColor: surge.green,
             ),
             child: Text(
               intervalLabel,
               style: context.textTheme.labelSmall?.copyWith(
                 color: observing ? surge.green : surge.textSecondary,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0,
               ),
             ),
           ),
+          const SizedBox(width: 4),
           SurgeSwitch(value: observing, onChanged: enabled ? onChanged : null),
         ],
       ),
@@ -990,17 +987,16 @@ class _ControlMetricsLine extends StatelessWidget {
     return Row(
       children: [
         for (var i = 0; i < items.length; i++) ...[
-          _ControlMetricText(label: items[i].$1, value: items[i].$2),
+          Expanded(
+            child: _ControlMetricText(label: items[i].$1, value: items[i].$2),
+          ),
           if (i != items.length - 1)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 9),
-              child: SizedBox(
-                height: 14,
-                child: VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: surge.separator,
-                ),
+            SizedBox(
+              height: 28,
+              child: VerticalDivider(
+                width: 18,
+                thickness: 1,
+                color: surge.separator,
               ),
             ),
         ],
@@ -1018,29 +1014,35 @@ class _ControlMetricText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surge = SurgeTheme.of(context);
-    return Expanded(
-      child: Text.rich(
-        TextSpan(
-          text: '$label ',
-          children: [
-            TextSpan(
-              text: value,
-              style: TextStyle(
-                color: surge.textPrimary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: context.textTheme.labelSmall?.copyWith(
+            color: surge.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
+          ),
         ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: context.textTheme.labelMedium?.copyWith(
-          color: surge.textSecondary,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0,
+        const SizedBox(width: 6),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: context.textTheme.titleSmall?.copyWith(
+            color: surge.textPrimary,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0,
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -1248,16 +1250,18 @@ class _MediaCheckResultList extends StatelessWidget {
           constraints: const BoxConstraints(maxHeight: _resultPanelMaxHeight),
           child: Theme(
             data: Theme.of(context).copyWith(
-              scrollbarTheme: const ScrollbarThemeData(mainAxisMargin: 8),
+              scrollbarTheme: const ScrollbarThemeData(
+                mainAxisMargin: 8,
+                crossAxisMargin: -8,
+              ),
             ),
             child: Scrollbar(
               thumbVisibility: false,
               child: ListView.separated(
                 shrinkWrap: true,
-                padding: const EdgeInsets.only(right: 20),
+                padding: EdgeInsets.zero,
                 itemCount: rows.length,
-                separatorBuilder: (_, _) =>
-                    Divider(height: 1, color: surge.separator),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (_, index) =>
                     _MediaCheckResultCard(row: rows[index], filter: filter),
               ),
@@ -1286,8 +1290,12 @@ class _MediaCheckResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final surge = SurgeTheme.of(context);
     final result = row.result;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 11),
+    return SurgeCard(
+      shadow: false,
+      backgroundColor: surge.card,
+      borderRadius: 12,
+      border: Border.all(color: surge.separator.withValues(alpha: 0.85)),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1349,7 +1357,7 @@ class _MediaCheckResultCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (row.running && result == null)
-            const _MediaCheckInlineLoading()
+            _PendingResultLine(filter: filter)
           else if (result != null)
             switch (filter) {
               _MediaCheckFilter.chatGPT => _SingleResultLine(
@@ -1492,61 +1500,114 @@ class _HealthResultLine extends StatelessWidget {
   }
 }
 
-class _MediaCheckInlineLoading extends StatelessWidget {
-  const _MediaCheckInlineLoading();
+class _MediaCheckPendingCard extends StatelessWidget {
+  const _MediaCheckPendingCard({required this.target, required this.filter});
+
+  final _MediaCheckTarget target;
+  final _MediaCheckFilter filter;
 
   @override
   Widget build(BuildContext context) {
     final surge = SurgeTheme.of(context);
-    return Row(
-      children: [
-        SizedBox.square(
-          dimension: 14,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: surge.textSecondary,
+    return SurgeCard(
+      shadow: false,
+      backgroundColor: surge.card,
+      borderRadius: 12,
+      border: Border.all(color: surge.separator.withValues(alpha: 0.85)),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: EmojiText(
+                  target.proxy.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: surge.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+              if (target.profile.realLabel.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 136),
+                  child: Text(
+                    target.profile.realLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: context.textTheme.labelSmall?.copyWith(
+                      color: surge.textSecondary,
+                      fontSize: 10,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '检测中',
-          style: context.textTheme.labelSmall?.copyWith(
-            color: surge.textSecondary,
-            fontSize: 11,
-            letterSpacing: 0,
-          ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          _PendingResultLine(filter: filter),
+        ],
+      ),
     );
   }
 }
 
-class _MediaCheckPendingCard extends StatelessWidget {
-  const _MediaCheckPendingCard({required this.target});
+class _PendingResultLine extends StatelessWidget {
+  const _PendingResultLine({required this.filter});
 
-  final _MediaCheckTarget target;
+  final _MediaCheckFilter filter;
 
   @override
   Widget build(BuildContext context) {
     final surge = SurgeTheme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 11),
+    final color = filter.color(surge);
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: surge.fill,
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Row(
         children: [
+          SizedBox.square(
+            dimension: 16,
+            child: CircularProgressIndicator(strokeWidth: 2, color: color),
+          ),
+          const SizedBox(width: 8),
           Expanded(
-            child: EmojiText(
-              target.proxy.name,
+            child: Text(
+              '检测中',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: surge.textPrimary,
-                fontSize: 13,
+              style: context.textTheme.labelMedium?.copyWith(
+                color: surge.textSecondary,
+                fontSize: 12,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0,
               ),
             ),
           ),
-          const _MediaCheckInlineLoading(),
+          Text(
+            filter.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: context.textTheme.labelSmall?.copyWith(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
+            ),
+          ),
         ],
       ),
     );

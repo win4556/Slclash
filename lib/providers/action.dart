@@ -567,19 +567,27 @@ class BackupAction extends _$BackupAction {
   void build() {}
 
   Future<String> backup() async {
-    final res = await Future.wait([
-      database.profilesDao.fileNames().get(),
-      database.scriptsDao.fileNames().get(),
-    ]);
-    final profileFileNames = res[0];
-    final scriptFileNames = res[1];
-    final configMap = ref.read(configProvider).toJson();
-    _removeDynamicThemeSeedColor(configMap);
-    configMap['version'] = await preferences.getVersion();
-    return backupTask(configMap, [...profileFileNames, ...scriptFileNames]);
+    final profileFileNames =
+        await database.profilesDao.fileNames().get();
+    final profiles = ref.read(profilesProvider);
+    final currentProfileId = ref.read(currentProfileIdProvider);
+    final appVersion = ref.read(versionProvider).toString();
+    final profilesJson = profiles.map((p) {
+      final json = p.toJson();
+      // Remove fields that depend on external data
+      json.remove('scriptId');
+      json.remove('overwriteType');
+      return json;
+    }).toList();
+    return backupProfilesOnlyTask(
+      profilesJson,
+      profileFileNames,
+      currentProfileId,
+      appVersion,
+    );
   }
 
-  Future<void> restore(RestoreOption option) async {
+  Future<void> restore() async {
     final restoreDirPath = await appPath.restoreDirPath;
     final restoreDir = Directory(restoreDirPath);
     final restoreStrategy = ref.read(
@@ -587,51 +595,39 @@ class BackupAction extends _$BackupAction {
     );
     final isOverride = restoreStrategy == RestoreStrategy.override;
     try {
-      final migrationData = await restoreTask();
+      final restoreData = await restoreProfilesOnlyTask();
       if (!await restoreDir.exists()) {
         throw currentAppLocalizations.restoreException;
       }
-      await database.restore(
-        migrationData.profiles,
-        migrationData.scripts,
-        migrationData.rules,
-        migrationData.links,
-        migrationData.proxyGroups,
-        isOverride: isOverride,
-      );
-      final configMap = migrationData.configMap;
-      if (option == RestoreOption.onlyProfiles || configMap == null) return;
-      _removeDynamicThemeSeedColor(configMap);
-      final config = Config.fromJson(configMap);
-      ref.read(patchClashConfigProvider.notifier).value =
-          config.patchClashConfig;
-      ref.read(appSettingProvider.notifier).value = config.appSettingProps;
-      ref.read(currentProfileIdProvider.notifier).value =
-          config.currentProfileId;
-      ref.read(davSettingProvider.notifier).value = config.davProps;
-      ref.read(themeSettingProvider.notifier).value = config.themeProps;
-      ref.read(windowSettingProvider.notifier).value = config.windowProps;
-      ref.read(vpnSettingProvider.notifier).value = config.vpnProps;
-      ref.read(proxiesStyleSettingProvider.notifier).value =
-          config.proxiesStyleProps;
-      ref.read(overrideDnsProvider.notifier).value = config.overrideDns;
-      ref.read(networkSettingProvider.notifier).value = config.networkProps;
-      ref.read(hotKeyActionsProvider.notifier).value = config.hotKeyActions;
-      return;
+      // Clean profiles: remove scriptId and overwriteType
+      final profiles = restoreData.profiles.map((p) {
+        final map = Map<String, dynamic>.from(p);
+        map['scriptId'] = null;
+        map['overwriteType'] = OverwriteType.standard.name;
+        return map;
+      }).toList();
+      // Convert to Profile objects
+      final profileList = <Profile>[];
+      for (final p in profiles) {
+        try {
+          profileList.add(Profile.fromJson(p));
+        } catch (_) {}
+      }
+      // Restore to database
+      final isOverride = restoreStrategy == RestoreStrategy.override;
+      await database.restoreProfilesOnly(profileList, isOverride: isOverride);
+      // Restore currentProfileId
+      final restoredIds = profileList.map((p) => p.id).toSet();
+      final requestedId = restoreData.currentProfileId;
+      if (requestedId != null && restoredIds.contains(requestedId)) {
+        ref.read(currentProfileIdProvider.notifier).value = requestedId;
+      } else if (profileList.isNotEmpty) {
+        ref.read(currentProfileIdProvider.notifier).value =
+            profileList.first.id;
+      }
     } finally {
       await restoreDir.safeDelete(recursive: true);
     }
-  }
-
-  void _removeDynamicThemeSeedColor(Map<String, Object?> configMap) {
-    final themeProps = configMap['themeProps'];
-    if (themeProps is! Map) {
-      return;
-    }
-    if (themeProps['dynamicColor'] != true) {
-      return;
-    }
-    themeProps['primaryColor'] = null;
   }
 }
 

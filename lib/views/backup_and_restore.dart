@@ -82,14 +82,19 @@ class _BackupAndRestoreState extends ConsumerState<BackupAndRestore>
     );
   }
 
-  Future<void> _restoreOnWebDAV(RestoreOption option) async {
+  Future<void> _restoreOnWebDAV() async {
     final appLocalizations = context.appLocalizations;
+    final confirmed = await globalState.showMessage(
+      title: appLocalizations.restore,
+      message: TextSpan(text: appLocalizations.restoreProfilesOnlyDesc),
+    );
+    if (confirmed != true || !context.mounted) return;
     final res = await globalState.loadingRun<bool>(
       () async {
         await _client?.restore();
         await globalState.container
             .read(backupActionProvider.notifier)
-            .restore(option);
+            .restore();
         return true;
       },
       tag: LoadingTag.backup_restore,
@@ -100,14 +105,6 @@ class _BackupAndRestoreState extends ConsumerState<BackupAndRestore>
       title: appLocalizations.restore,
       message: TextSpan(text: appLocalizations.restoreSuccess),
     );
-  }
-
-  Future<void> _handleRestoreOnWebDAV() async {
-    final restoreOption = await globalState.showCommonDialog<RestoreOption>(
-      child: const RestoreOptionsDialog(),
-    );
-    if (restoreOption == null || !context.mounted) return;
-    _restoreOnWebDAV(restoreOption);
   }
 
   Future<void> _backupOnLocal() async {
@@ -137,17 +134,22 @@ class _BackupAndRestoreState extends ConsumerState<BackupAndRestore>
     );
   }
 
-  Future<void> _restoreOnLocal(RestoreOption option) async {
+  Future<void> _restoreOnLocal() async {
     final appLocalizations = context.appLocalizations;
     final file = await picker.pickerFile(withData: false);
     final path = file?.path;
     if (path == null) return;
+    final confirmed = await globalState.showMessage(
+      title: appLocalizations.restore,
+      message: TextSpan(text: appLocalizations.restoreProfilesOnlyDesc),
+    );
+    if (confirmed != true || !mounted) return;
     await File(path).safeCopy(await appPath.backupFilePath);
     final res = await globalState.loadingRun<bool>(
       () async {
         await globalState.container
             .read(backupActionProvider.notifier)
-            .restore(option);
+            .restore();
         return true;
       },
       tag: LoadingTag.backup_restore,
@@ -158,14 +160,6 @@ class _BackupAndRestoreState extends ConsumerState<BackupAndRestore>
       title: appLocalizations.restore,
       message: TextSpan(text: appLocalizations.restoreSuccess),
     );
-  }
-
-  Future<void> _handleRestoreOnLocal() async {
-    final option = await globalState.showCommonDialog<RestoreOption>(
-      child: const RestoreOptionsDialog(),
-    );
-    if (option == null || !mounted) return;
-    _restoreOnLocal(option);
   }
 
   void _handleChange(String? value, WidgetRef ref) {
@@ -318,7 +312,7 @@ class _BackupAndRestoreState extends ConsumerState<BackupAndRestore>
                 ),
                 ListItem(
                   onTap: () {
-                    _handleRestoreOnWebDAV();
+                    _restoreOnWebDAV();
                   },
                   title: Text(appLocalizations.restore),
                   subtitle: Text(appLocalizations.restoreFromWebDAVDesc),
@@ -339,7 +333,7 @@ class _BackupAndRestoreState extends ConsumerState<BackupAndRestore>
               ),
               ListItem(
                 onTap: () {
-                  _handleRestoreOnLocal();
+                  _restoreOnLocal();
                 },
                 title: Text(appLocalizations.restore),
                 subtitle: Text(appLocalizations.restoreFromFileDesc),
@@ -409,45 +403,6 @@ class _BackupPillButton extends StatelessWidget {
           fontWeight: FontWeight.w700,
           letterSpacing: 0,
         ),
-      ),
-    );
-  }
-}
-
-class RestoreOptionsDialog extends StatefulWidget {
-  const RestoreOptionsDialog({super.key});
-
-  @override
-  State<RestoreOptionsDialog> createState() => _RestoreOptionsDialogState();
-}
-
-class _RestoreOptionsDialogState extends State<RestoreOptionsDialog> {
-  void _handleOnTab(RestoreOption? option) {
-    if (option == null) return;
-    Navigator.of(context).pop(option);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final appLocalizations = context.appLocalizations;
-    return CommonDialog(
-      title: appLocalizations.restore,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-      child: Wrap(
-        children: [
-          ListItem(
-            onTap: () {
-              _handleOnTab(RestoreOption.onlyProfiles);
-            },
-            title: Text(appLocalizations.restoreOnlyConfig),
-          ),
-          ListItem(
-            onTap: () {
-              _handleOnTab(RestoreOption.all);
-            },
-            title: Text(appLocalizations.restoreAllData),
-          ),
-        ],
       ),
     );
   }

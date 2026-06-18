@@ -415,6 +415,7 @@
   "restoreFromWebDAVDesc": "Restore data via WebDAV",
   "restoreFromFileDesc": "Restore data via file",
   "restoreOnlyConfig": "Restore configuration files only",
+  "restoreProfilesOnlyDesc": "Only subscription and node data will be restored. App settings, theme, WebDAV, scripts, rules, and custom proxy groups will not be restored.",
   "restoreAllData": "Restore all data",
   "addProfile": "Add Profile",
   "delayTest": "Delay Test",

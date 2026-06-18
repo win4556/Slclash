@@ -3279,6 +3279,16 @@ class AppLocalizations {
     );
   }
 
+  /// `Only subscription and node data will be restored. App settings, theme, WebDAV, scripts, rules, and custom proxy groups will not be restored.`
+  String get restoreProfilesOnlyDesc {
+    return Intl.message(
+      'Only subscription and node data will be restored. App settings, theme, WebDAV, scripts, rules, and custom proxy groups will not be restored.',
+      name: 'restoreProfilesOnlyDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Restore all data`
   String get restoreAllData {
     return Intl.message(

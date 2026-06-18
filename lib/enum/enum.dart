@@ -140,8 +140,6 @@ enum InvokeMessageType { protect, process }
 
 enum FindProcessMode { always, off }
 
-enum RestoreOption { all, onlyProfiles }
-
 enum ChipType { action, delete }
 
 enum CommonCardType { plain, filled }

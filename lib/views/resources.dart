@@ -50,7 +50,7 @@ enum _ResourceAutoUpdateMode {
   static _ResourceAutoUpdateMode fromName(String? name) {
     return _ResourceAutoUpdateMode.values.firstWhere(
       (item) => item.name == name,
-      orElse: () => _ResourceAutoUpdateMode.off,
+      orElse: () => _ResourceAutoUpdateMode.everySevenDays,
     );
   }
 }
@@ -118,7 +118,7 @@ class ResourcesView extends ConsumerStatefulWidget {
 
 class _ResourcesViewState extends ConsumerState<ResourcesView> {
   final _updatingItems = ValueNotifier<Set<String>>({});
-  var _autoUpdateMode = _ResourceAutoUpdateMode.off;
+  var _autoUpdateMode = _ResourceAutoUpdateMode.everySevenDays;
   var _autoChecked = false;
 
   @override

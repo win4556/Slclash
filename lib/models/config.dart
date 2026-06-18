@@ -28,13 +28,22 @@ const defaultBypassDomain = [
   '192.168.*',
 ];
 
-const defaultAppSettingProps = AppSettingProps();
+const defaultAppSettingProps = AppSettingProps(
+  locale: 'zh_CN',
+  onlyStatisticsProxy: true,
+);
 const defaultVpnProps = VpnProps();
 const defaultNetworkProps = NetworkProps();
-const defaultProxiesStyleProps = ProxiesStyleProps();
+const defaultProxiesStyleProps = ProxiesStyleProps(
+  iconStyle: ProxiesIconStyle.none,
+);
 const defaultWindowProps = WindowProps();
 const defaultAccessControlProps = AccessControlProps();
-const defaultThemeProps = ThemeProps(primaryColor: defaultPrimaryColor);
+const defaultThemeProps = ThemeProps(
+  primaryColor: defaultPrimaryColor,
+  themeMode: ThemeMode.system,
+  dynamicColor: true,
+);
 
 const List<DashboardWidget> defaultDashboardWidgets = [
   DashboardWidget.networkSpeed,
@@ -66,7 +75,7 @@ abstract class AppSettingProps with _$AppSettingProps {
     @Default(defaultDashboardWidgets)
     @JsonKey(fromJson: dashboardWidgetsSafeFormJson)
     List<DashboardWidget> dashboardWidgets,
-    @Default(false) bool onlyStatisticsProxy,
+    @Default(true) bool onlyStatisticsProxy,
     @Default(false) bool autoLaunch,
     @Default(false) bool silentLaunch,
     @Default(false) bool autoRun,
@@ -180,7 +189,7 @@ abstract class ProxiesStyleProps with _$ProxiesStyleProps {
     @Default(ProxiesType.tab) ProxiesType type,
     @Default(ProxiesSortType.none) ProxiesSortType sortType,
     @Default(ProxiesLayout.standard) ProxiesLayout layout,
-    @Default(ProxiesIconStyle.standard) ProxiesIconStyle iconStyle,
+    @Default(ProxiesIconStyle.none) ProxiesIconStyle iconStyle,
     @Default(ProxyCardType.expand) ProxyCardType cardType,
   }) = _ProxiesStyleProps;
 
@@ -205,9 +214,9 @@ abstract class ThemeProps with _$ThemeProps {
   const factory ThemeProps({
     int? primaryColor,
     @Default(defaultPrimaryColors) List<int> primaryColors,
-    @Default(ThemeMode.dark) ThemeMode themeMode,
+    @Default(ThemeMode.system) ThemeMode themeMode,
     @Default(DynamicSchemeVariant.tonalSpot) DynamicSchemeVariant schemeVariant,
-    @Default(false) bool dynamicColor,
+    @Default(true) bool dynamicColor,
     @Default(false) bool pureBlack,
     @Default(TextScale()) TextScale textScale,
   }) = _ThemeProps;

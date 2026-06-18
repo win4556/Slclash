@@ -628,6 +628,246 @@ String _getProfilePath(String root, String fileName) {
   return join(root, 'profiles', '$fileName.yaml');
 }
 
+// --- Profiles-only backup/restore ---
+
+class ProfilesBackupMetadata {
+  final String backupType;
+  final String createdAt;
+  final String appVersion;
+  final int? currentProfileId;
+  final List<Map<String, dynamic>> profiles;
+
+  ProfilesBackupMetadata({
+    required this.backupType,
+    required this.createdAt,
+    required this.appVersion,
+    required this.currentProfileId,
+    required this.profiles,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'backupType': backupType,
+        'createdAt': createdAt,
+        'appVersion': appVersion,
+        'currentProfileId': currentProfileId,
+        'profiles': profiles,
+      };
+
+  factory ProfilesBackupMetadata.fromJson(Map<String, dynamic> json) {
+    return ProfilesBackupMetadata(
+      backupType: json['backupType'] as String? ?? '',
+      createdAt: json['createdAt'] as String? ?? '',
+      appVersion: json['appVersion'] as String? ?? '',
+      currentProfileId: json['currentProfileId'] as int?,
+      profiles: (json['profiles'] as List?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+Future<String> backupProfilesOnlyTask(
+  List<Map<String, dynamic>> profilesJson,
+  List<String> fileNames,
+  int? currentProfileId,
+  String appVersion,
+) async {
+  return compute<
+      VM5<List<Map<String, dynamic>>, List<String>, int?, String,
+          RootIsolateToken>,
+      String>(
+    _backupProfilesOnlyTask,
+    VM5(profilesJson, fileNames, currentProfileId, appVersion,
+        RootIsolateToken.instance!),
+  );
+}
+
+Future<String> _backupProfilesOnlyTask(
+  VM5<List<Map<String, dynamic>>, List<String>, int?, String, RootIsolateToken>
+      args,
+) async {
+  final profilesJson = args.a;
+  final fileNames = args.b;
+  final currentProfileId = args.c;
+  final appVersion = args.d;
+  final token = args.e;
+  BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+
+  final profilesDir = Directory(await appPath.profilesPath);
+  final tempZipFilePath = await appPath.tempFilePath;
+  final tempMetaFile = File(await appPath.tempFilePath);
+
+  final metadata = ProfilesBackupMetadata(
+    backupType: profilesBackupType,
+    createdAt: DateTime.now().toUtc().toIso8601String(),
+    appVersion: appVersion,
+    currentProfileId: currentProfileId,
+    profiles: profilesJson,
+  );
+  await tempMetaFile.writeAsString(json.encode(metadata.toJson()));
+
+  final encoder = ZipFileEncoder();
+  encoder.create(tempZipFilePath);
+  await encoder.addFile(tempMetaFile, profilesBackupMetadataName);
+  if (await profilesDir.exists()) {
+    await encoder.addDirectory(
+      profilesDir,
+      filter: (file, _) {
+        if (!fileNames.contains(basename(file.path))) {
+          return ZipFileOperation.skip;
+        }
+        return ZipFileOperation.include;
+      },
+    );
+  }
+  encoder.close();
+  await tempMetaFile.safeDelete();
+  return tempZipFilePath;
+}
+
+class ProfilesRestoreData {
+  final int? currentProfileId;
+  final List<Map<String, dynamic>> profiles;
+
+  ProfilesRestoreData({
+    required this.currentProfileId,
+    required this.profiles,
+  });
+}
+
+Future<ProfilesRestoreData> restoreProfilesOnlyTask() async {
+  return compute<RootIsolateToken, ProfilesRestoreData>(
+    _restoreProfilesOnlyTask,
+    RootIsolateToken.instance!,
+  );
+}
+
+Future<ProfilesRestoreData> _restoreProfilesOnlyTask(
+  RootIsolateToken token,
+) async {
+  BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+  final backupFilePath = await appPath.backupFilePath;
+  final restoreDirPath = await appPath.restoreDirPath;
+  final homeDirPath = await appPath.homeDirPath;
+
+  final zipDecoder = ZipDecoder();
+  final input = InputFileStream(backupFilePath);
+  final archive = zipDecoder.decodeStream(input);
+  final dir = Directory(restoreDirPath);
+  await dir.create(recursive: true);
+  for (final file in archive.files) {
+    final outPath = join(restoreDirPath, posix.normalize(file.name));
+    final outputStream = OutputFileStream(outPath);
+    file.writeContent(outputStream);
+    await outputStream.close();
+  }
+  await input.close();
+
+  // Try new format first
+  final metadataFile = File(join(restoreDirPath, profilesBackupMetadataName));
+  if (await metadataFile.exists()) {
+    final metadataMap =
+        json.decode(await metadataFile.readAsString()) as Map<String, dynamic>;
+    final backupType = metadataMap['backupType'] as String? ?? '';
+    if (backupType == profilesBackupType) {
+      // New profiles-only format
+      final metadata = ProfilesBackupMetadata.fromJson(metadataMap);
+      // Copy yaml files
+      final restoreProfilesDir = join(restoreDirPath, profilesBackupDirName);
+      if (await Directory(restoreProfilesDir).exists()) {
+        final targetProfilesDir = Directory(await appPath.profilesPath);
+        if (!await targetProfilesDir.exists()) {
+          await targetProfilesDir.create(recursive: true);
+        }
+        await for (final file in Directory(restoreProfilesDir).list()) {
+          if (file is File && file.path.endsWith('.yaml')) {
+            final targetPath =
+                join(targetProfilesDir.path, basename(file.path));
+            await file.safeCopy(targetPath);
+          }
+        }
+      }
+      return ProfilesRestoreData(
+        currentProfileId: metadata.currentProfileId,
+        profiles: metadata.profiles,
+      );
+    }
+  }
+
+  // Fallback: old format with database.sqlite
+  final backupDatabaseFile = File(join(restoreDirPath, backupDatabaseName));
+  if (await backupDatabaseFile.exists()) {
+    final database = Database(
+      driftDatabase(
+        name: 'database',
+        native: DriftNativeOptions(
+          databaseDirectory: () async => Directory(restoreDirPath),
+        ),
+      ),
+    );
+    final profiles = await database.profilesDao.query().get();
+    // Copy yaml files
+    final profilesMigration = profiles.map(
+      (item) => VM2(
+        _getProfilePath(restoreDirPath, item.id.toString()),
+        _getProfilePath(homeDirPath, item.id.toString()),
+      ),
+    );
+    await Future.wait(
+      profilesMigration
+          .map((item) => File(item.a).safeCopy(item.b))
+          .toList(),
+    );
+    // Extract currentProfileId from config.json if present
+    int? currentProfileId;
+    final configFile = File(join(restoreDirPath, configJsonName));
+    if (await configFile.exists()) {
+      try {
+        final configMap =
+            json.decode(await configFile.readAsString()) as Map<String, dynamic>;
+        currentProfileId = configMap['currentProfileId'] as int?;
+      } catch (_) {}
+    }
+    await database.close();
+    return ProfilesRestoreData(
+      currentProfileId: currentProfileId,
+      profiles: profiles.map((p) => p.toJson()).toList(),
+    );
+  }
+
+  // Fallback: oldest format with config.json only
+  final configFile = File(join(restoreDirPath, configJsonName));
+  if (await configFile.exists()) {
+    final configMap =
+        json.decode(await configFile.readAsString()) as Map<String, dynamic>;
+    final rawProfiles =
+        (configMap['profiles'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final currentProfileId = configMap['currentProfileId'] as int?;
+    // Copy yaml files from restore dir
+    final restoreProfilesDir = Directory(join(restoreDirPath, 'profiles'));
+    if (await restoreProfilesDir.exists()) {
+      final targetProfilesDir = Directory(await appPath.profilesPath);
+      if (!await targetProfilesDir.exists()) {
+        await targetProfilesDir.create(recursive: true);
+      }
+      await for (final file in restoreProfilesDir.list()) {
+        if (file is File && file.path.endsWith('.yaml')) {
+          final targetPath =
+              join(targetProfilesDir.path, basename(file.path));
+          await file.safeCopy(targetPath);
+        }
+      }
+    }
+    return ProfilesRestoreData(
+      currentProfileId: currentProfileId,
+      profiles: rawProfiles,
+    );
+  }
+
+  throw 'Invalid backup file';
+}
+
 Future<List<T>> mapListTask<T, S>(List<S> results, T Function(S) mapper) async {
   return compute<VM2<List<S>, T Function(S)>, List<T>>(
     _mapListTask,

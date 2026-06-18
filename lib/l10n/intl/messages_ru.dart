@@ -788,6 +788,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "restoreOnlyConfig": MessageLookupByLibrary.simpleMessage(
       "Восстановить только файлы конфигурации",
     ),
+    "restoreProfilesOnlyDesc": MessageLookupByLibrary.simpleMessage(
+      "Будут восстановлены только данные подписок и узлов. Настройки приложения, тема, WebDAV, скрипты, правила и пользовательские группы прокси восстановлены не будут.",
+    ),
     "restoreStrategy": MessageLookupByLibrary.simpleMessage(
       "Стратегия восстановления",
     ),

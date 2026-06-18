@@ -415,6 +415,7 @@
   "restoreFromWebDAVDesc": "WebDAVを介してデータを復元する",
   "restoreFromFileDesc": "ファイルを介してデータを復元する",
   "restoreOnlyConfig": "設定ファイルのみを復元する",
+  "restoreProfilesOnlyDesc": "サブスクリプションとノードデータのみが復元されます。アプリ設定、テーマ、WebDAV、スクリプト、ルール、カスタムプロキシグループは復元されません。",
   "restoreAllData": "すべてのデータを復元する",
   "addProfile": "プロファイルを追加",
   "delayTest": "遅延テスト",

@@ -415,6 +415,7 @@
   "restoreFromWebDAVDesc": "通过WebDAV恢复数据",
   "restoreFromFileDesc": "通过文件恢复数据",
   "restoreOnlyConfig": "仅恢复配置文件",
+  "restoreProfilesOnlyDesc": "将只恢复订阅和节点数据，不会恢复应用设置、主题、WebDAV、脚本、规则和自定义代理组。",
   "restoreAllData": "恢复所有数据",
   "addProfile": "添加配置",
   "delayTest": "延迟测试",
