@@ -32,7 +32,11 @@ jobs:
           go-version: '1.23'
 
       - name: Get dependencies
-        run: flutter pub get
+        run: |
+          flutter pub get
+          cd plugins/setup
+          dart pub get
+          cd ../..
 
       - name: Build Go core
         run: |
