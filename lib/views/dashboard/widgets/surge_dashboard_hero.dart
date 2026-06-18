@@ -561,12 +561,10 @@ class _ProxySelectorSheet extends ConsumerWidget {
                         )
                       : null,
                   onTap: () {
-                    // 切换节点
-                    ref.read(changeProxyDebounceProvider).changeProxy(
-                      ChangeProxyParams(
-                        groupName: groupName,
-                        proxyName: proxy.name,
-                      ),
+                    // 使用 proxiesActionProvider 切换节点
+                    ref.read(proxiesActionProvider.notifier).changeProxyDebounce(
+                      groupName,
+                      proxy.name,
                     );
                     Navigator.pop(context);
                   },
